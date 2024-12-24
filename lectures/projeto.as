@@ -80,7 +80,7 @@ L23             STR     '*******************************************************
 
 
 RowIndex        WORD    0d
-ColumnInde      WORD    0d
+ColumnIndex     WORD    0d
 TextIndex       WORD    0d
 
 Direcao         WORD    DIREITA
@@ -276,9 +276,8 @@ Mov_cobra:      PUSH 	R1
 MovCobraCima:           PUSH    R1       
 
                         DEC     M[ LinhaCabeca ]
-                        CMP     M [ LinhaCabeca], LIMITE_ZERO_TELA
-
-                        POP     R1
+                        
+			POP     R1
                         RET
 
 ;------------------------------------------------------------------------------
@@ -287,8 +286,7 @@ MovCobraCima:           PUSH    R1
 MovCobraBaixo:          PUSH    R1       
 
                         INC     M[ LinhaCabeca ]
-                        CMP     M [ LinhaCabeca], LIMITE_ZERO_TELA
-
+                        
                         POP     R1
                         RET
 
@@ -414,7 +412,7 @@ GenerateFruitRow: PUSH R1
 
                   CALL RandomV2
                   MOV  R1, M[ Random_Var ]
-                  MOV  R2, MAX_NUMBER_FRUIT_ROWS
+                  MOV  R2, MAXIMO_COLUNAS
                   DIV  R1, R2
                   MOV  M[ ColunaFruta ], R2
 
