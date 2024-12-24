@@ -30,6 +30,9 @@ ESQUERDA        EQU     3d
 ON              EQU     1d
 OFF             EQU     0d
 
+VIVO		EQU	1d
+MORTO		EQU	0d
+
 ; padrao de bits para geracao de numero aleatorio
 RND_MASK		EQU	8016h	; 1000 0000 0001 0110b
 LSB_MASK		EQU	0001h	; Mascara para testar o bit menos significativo do Random_Var
@@ -96,6 +99,8 @@ PosicaoCalda    WORD     0d
 
 ColunaFruta     WORD    0d
 LinhaFruta      WORD    0d
+
+Estado		WORD	1d
 
 
 
@@ -222,23 +227,31 @@ printCabeca:    PUSH R1
 ;------------------------------------------------------------------------------
 ; Função Configura Timer
 ;------------------------------------------------------------------------------
-ConfiguraTimer: PUSH R1
+ConfiguraTimer: PUSH 	R1
 
-                MOV R1, 5d
-                MOV M[ TIMER_UNITS ], R1
+                MOV 	R1, 5d
+                MOV 	M[ TIMER_UNITS ], R1
 
-                MOV R1, ON
-                MOV M[ ACTIVATE_TIMER ], R1
+		MOV	R1, M [ Estado ]
+		CMP	R1, VIVO
+		JMP.Z	Vivo
 
-                POP R1
+		MOV	R1, OFF
+		MOV	M [ ACTIVATE_TIMER ], R1
+		JMP	Morto
+
+Vivo:           MOV 	R1, ON
+                MOV 	M[ ACTIVATE_TIMER ], R1
+
+Morto:          POP 	R1
 
                 RET
 ;------------------------------------------------------------------------------
 ; Função Movimenta Cobra
 ;------------------------------------------------------------------------------
-Mov_cobra:      PUSH R1
+Mov_cobra:      PUSH 	R1
 
-                MOV R1, M[ Direcao ]
+                MOV 	R1, M[ Direcao ]
 
                 CMP     R1, CIMA
                 CALL.Z  MovCobraCima
@@ -254,7 +267,7 @@ Mov_cobra:      PUSH R1
 
                 CALL    printCabeca
 
-                POP R1
+                POP 	R1
                 RET
 
 ;------------------------------------------------------------------------------
@@ -307,8 +320,7 @@ MovCobraEsquerda:       PUSH    R1
 MudaDirecaoCima:        PUSH    R1
 
                         MOV     R1, CIMA
-                        MOV     M [Direcao], R1
-
+                        
                         POP     R1
                         RTI
 
@@ -318,8 +330,7 @@ MudaDirecaoCima:        PUSH    R1
 MudaDirecaoBaixo:       PUSH    R1
 
                         MOV     R1, BAIXO
-                        MOV     M [Direcao], R1
-
+                       
                         POP     R1
                         RTI
 
