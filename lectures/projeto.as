@@ -41,9 +41,12 @@ PRIME_NUMBER_2	        EQU 13d
 
 MAXIMO_LINHAS           EQU 20d
 MAXIMO_COLUNAS          EQU 72d
-LIMITE_ZERO_TELA        EQU 0d 
-LIMEITE_INFERIOR_TELA   EQU 23d
-LIMITE_HORIZONTAL       EQU 79d
+LIMITE_ESQUERDO_TELA    EQU 0d 
+LIMITE_INFERIOR_TELA    EQU 23d
+LIMITE_SUPERIOR_TELA    EQU 3d
+LIMITE_DIREITO_TELA     EQU 79d
+
+
 
 ;------------------------------------------------------------------------------
 ; ZONA II: definicao de variaveis
@@ -77,6 +80,7 @@ L20             STR     '*                                                      
 L21             STR     '*                                                                              *', FIM_TEXTO
 L22             STR     '*                                                                              *', FIM_TEXTO
 L23             STR     '********************************************************************************', FIM_TEXTO    
+
 
 
 RowIndex        WORD    0d
@@ -139,7 +143,6 @@ Timer:  PUSH R1
         MOV  R1, M[ Cabeca ]
 
         CALL Mov_cobra
-
         CALL ConfiguraTimer
 
         POP R2
@@ -202,6 +205,20 @@ exec1:          CALL    print
                 POP R5
                 POP R1
                 RET
+
+;------------------------------------------------------------------------------
+; Rotina Fim de Jogo
+;------------------------------------------------------------------------------
+FimDeJogo:      PUSH R1
+
+                MOV     R1, MORTO
+                MOV     M[ Estado ], R1
+
+                
+
+                POP    R1
+
+
 
 ;------------------------------------------------------------------------------
 ; Rotina Print Cabeça
@@ -276,6 +293,10 @@ Mov_cobra:      PUSH 	R1
 MovCobraCima:           PUSH    R1       
 
                         DEC     M[ LinhaCabeca ]
+
+                        MOV     R1, M [ LinhaCabeca]
+                        CMP     R1, LIMITE_SUPERIOR_TELA
+                        CALL.Z  FimDeJogo
                         
 			POP     R1
                         RET
@@ -286,6 +307,10 @@ MovCobraCima:           PUSH    R1
 MovCobraBaixo:          PUSH    R1       
 
                         INC     M[ LinhaCabeca ]
+
+                        MOV     R1, M [ LinhaCabeca]
+                        CMP     R1, LIMITE_INFERIOR_TELA
+                        CALL.Z  FimDeJogo                     
                         
                         POP     R1
                         RET
@@ -297,6 +322,12 @@ MovCobraDireita:        PUSH    R1
 
                         INC     M[ ColunaCabeca ]
 
+
+                        MOV     R1, M [ ColunaCabeca ]
+                        CMP     R1, LIMITE_DIREITO_TELA
+                        CALL.Z  FimDeJogo
+                        
+
                         POP     R1
                         RET
 
@@ -307,6 +338,10 @@ MovCobraEsquerda:       PUSH    R1
 
                         DEC     M[ ColunaCabeca ]
 
+                        MOV     R1, M [ ColunaCabeca ]
+                        CMP     R1, LIMITE_ESQUERDO_TELA
+                        CALL.Z  FimDeJogo
+                        
                         POP     R1
                         RET
 
@@ -318,6 +353,7 @@ MovCobraEsquerda:       PUSH    R1
 MudaDirecaoCima:        PUSH    R1
 
                         MOV     R1, CIMA
+                        MOV     M [ Direcao ], R1
                         
                         POP     R1
                         RTI
@@ -328,7 +364,8 @@ MudaDirecaoCima:        PUSH    R1
 MudaDirecaoBaixo:       PUSH    R1
 
                         MOV     R1, BAIXO
-                       
+                        MOV     M [ Direcao ], R1
+
                         POP     R1
                         RTI
 
@@ -442,3 +479,7 @@ Main:			ENI
                         CALL    print_tela
                         CALL    printCabeca
                         CALL    ConfiguraTimer
+
+
+Cycle:                  BR      Cycle
+Halt:                   BR      Halt
