@@ -81,6 +81,12 @@ L21             STR     '*                                                      
 L22             STR     '*                                                                              *', FIM_TEXTO
 L23             STR     '********************************************************************************', FIM_TEXTO    
 
+Perdeu_L1       STR     '*             _   _                 ______            _                        *', FIM_TEXTO
+Perdeu_L2       STR     '*            | | | |                | ___ \          | |                       *', FIM_TEXTO
+Perdeu_L3       STR     '*            | | | | ___   ___ ___  | |_/ /__ ____ __| | ___ _   _             *', FIM_TEXTO
+Perdeu_L4       STR     '*            | | | |/ _ \ / __/ _ \ |  __/ _ \ __/ _   |/ _ \ | | |            *', FIM_TEXTO
+Perdeu_L5       STR     '*            \ \_/ / (_) | (_|  __/ | | |  __/ | | (_| |  __/ |_| |            *', FIM_TEXTO
+Perdeu_L6       STR     '*             \___/ \___/ \___\___| \_|  \___|_|  \____|\___|\____|            *', FIM_TEXTO
 
 
 RowIndex        WORD    0d
@@ -214,6 +220,20 @@ FimDeJogo:      PUSH R1
                 MOV     R1, MORTO
                 MOV     M[ Estado ], R1
 
+                MOV     R1, M [ Perdeu_L1]
+                MOV     M [ L10 ], R1
+                MOV     R1, M [ Perdeu_L2]
+                MOV     M [ L11 ], R1
+                MOV     R1, M [ Perdeu_L3]
+                MOV     M [ L12 ], R1
+                MOV     R1, M [ Perdeu_L4]
+                MOV     M [ L13 ], R1
+                MOV     R1, M [ Perdeu_L5]
+                MOV     M [ L14 ], R1
+                MOV     R1, M [ Perdeu_L6]
+                MOV     M [ L15 ], R1
+
+                CALL print_tela
                 
 
                 POP    R1
