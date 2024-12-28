@@ -305,7 +305,8 @@ Mov_cobra:      PUSH 	R1
                 CALL.Z  MovCobraDireita
 
                 CALL    printCabeca
-                CMP     M [ PosicaoCabeca ], M [ PosicaoFruta ]
+                MOV     R1, M [ PosicaoCabeca ]
+                CMP     R1, M [ PosicaoFruta ]
                 JMP.NZ  FimMov_Cobra
                 INC     M [ Tamanho ]
 
