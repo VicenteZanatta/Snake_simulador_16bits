@@ -21,11 +21,12 @@ TIMER_UNITS     EQU     FFF6h
 ACTIVATE_TIMER  EQU     FFF7h
 
 CABECA          EQU     '@'
+CORPO           EQU     'o'
 CALDA           EQU     '.'
 FRUTA           EQU     '+'
 
 CIMA            EQU     0d
-BAIXO           EQU     1d
+BAIXO           EQU     1d                 
 DIREITA         EQU     2d
 ESQUERDA        EQU     3d
 
@@ -149,7 +150,6 @@ Timer:  PUSH    R1
         MOV     M[ CURSOR ], R1
         MOV     R1, M[ CABECA ]
 
-        CALL    GeraFruta
         CALL    Mov_cobra
         CALL    ConfiguraTimer
 
@@ -222,17 +222,17 @@ FimDeJogo:      PUSH R1
                 MOV     R1, MORTO
                 MOV     M[ Estado ], R1
 
-                MOV     R1, M [ Perdeu_L1]
+                MOV     R1, M [ Perdeu_L1 ]
                 MOV     M [ L10 ], R1
-                MOV     R1, M [ Perdeu_L2]
+                MOV     R1, M [ Perdeu_L2 ]
                 MOV     M [ L11 ], R1
-                MOV     R1, M [ Perdeu_L3]
+                MOV     R1, M [ Perdeu_L3 ]
                 MOV     M [ L12 ], R1
-                MOV     R1, M [ Perdeu_L4]
+                MOV     R1, M [ Perdeu_L4 ]
                 MOV     M [ L13 ], R1
-                MOV     R1, M [ Perdeu_L5]
+                MOV     R1, M [ Perdeu_L5 ]
                 MOV     M [ L14 ], R1
-                MOV     R1, M [ Perdeu_L6]
+                MOV     R1, M [ Perdeu_L6 ]
                 MOV     M [ L15 ], R1
 
                 CALL print_tela
@@ -248,16 +248,16 @@ FimDeJogo:      PUSH R1
 printCabeca:    PUSH R1
                 PUSH R2
 
-                MOV     R1, M [ LinhaCabeca]
+                MOV     R1, M [ LinhaCabeca ]
                 SHL     R1, 8d
-                MOV     R2, M [ ColunaCabeca]
+                MOV     R2, M [ ColunaCabeca ]
                 OR      R1, R2
 
                 MOV     M [ PosicaoCabeca], R1
                 MOV     R2, CABECA
 
                 MOV     M [ CURSOR ], R1
-                MOV     M [ IO_WRITE], R2
+                MOV     M [ IO_WRITE ], R2
 
                 POP R2
                 POP R1
@@ -309,6 +309,7 @@ Mov_cobra:      PUSH 	R1
                 CMP     R1, M [ PosicaoFruta ]
                 JMP.NZ  FimMov_Cobra
                 INC     M [ Tamanho ]
+                CALL    GeraFruta
 
 FimMov_Cobra:   POP 	R1
                 RET
@@ -477,7 +478,7 @@ GeraFruta:              PUSH R1
                         PUSH R2
 
 
-                        CALL RandomV2
+                        CALL RandomV1
                         MOV  R1, M[ Random_Var ]
                         MOV  R2, MAXIMO_COLUNAS
                         DIV  R1, R2
@@ -524,6 +525,7 @@ Main:			ENI
 
                         CALL    print_tela
                         CALL    printCabeca
+                        CALL    GeraFruta
                         CALL    ConfiguraTimer
 
 
