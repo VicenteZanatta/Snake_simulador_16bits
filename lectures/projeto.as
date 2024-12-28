@@ -20,7 +20,9 @@ NUM_LINHA       EQU     24d
 TIMER_UNITS     EQU     FFF6h
 ACTIVATE_TIMER  EQU     FFF7h
 
-Cabeca          EQU    '@'
+CABECA          EQU     '@'
+CALDA           EQU     '.'
+FRUTA           EQU     '+'
 
 CIMA            EQU     0d
 BAIXO           EQU     1d
@@ -43,7 +45,7 @@ MAXIMO_LINHAS           EQU 20d
 MAXIMO_COLUNAS          EQU 72d
 LIMITE_ESQUERDO_TELA    EQU 0d 
 LIMITE_INFERIOR_TELA    EQU 23d
-LIMITE_SUPERIOR_TELA    EQU 3d
+LIMITE_SUPERIOR_TELA    EQU 2d
 LIMITE_DIREITO_TELA     EQU 79d
 
 
@@ -57,7 +59,7 @@ LIMITE_DIREITO_TELA     EQU 79d
 
                 ORIG    8000h
 L0              STR     '********************************************************************************', FIM_TEXTO
-L1              STR     '* Snakezinha                                                      Pontos: 0000 *', FIM_TEXTO
+L1              STR     '* A COBRA VAI FUMAR                                              Tamanho: 0000 *', FIM_TEXTO
 L2              STR     '********************************************************************************', FIM_TEXTO
 L3              STR     '*                                                                              *', FIM_TEXTO
 L4              STR     '*                                                                              *', FIM_TEXTO
@@ -89,29 +91,28 @@ Perdeu_L5       STR     '*            \ \_/ / (_) | (_|  __/ | | |  __/ | | (_| 
 Perdeu_L6       STR     '*             \___/ \___/ \___\___| \_|  \___|_|  \____|\___|\____|            *', FIM_TEXTO
 
 
-RowIndex        WORD    0d
-ColumnIndex     WORD    0d
-TextIndex       WORD    0d
-
-Direcao         WORD    DIREITA
-
+LinhaTexto      WORD    0d
+ColunaTexto     WORD    0d
+PosicaoTexto    WORD    0d
 
 Random_Var	WORD	A5A5h  ; 1010 0101 1010 0101
 RandomState     WORD	1d
 
-LinhaCabeca     WORD     12d
-ColunaCabeca    WORD     40d
-PosicaoCabeca   WORD     0d
+LinhaCabeca     WORD    12d
+ColunaCabeca    WORD    40d
+PosicaoCabeca   WORD    0d
 
-LinhaCalda      WORD     12d
-Colunacalda     WORD     40d
-PosicaoCalda    WORD     0d
+LinhaCalda      WORD    12d
+Colunacalda     WORD    40d
+PosicaoCalda    WORD    0d
 
 ColunaFruta     WORD    0d
 LinhaFruta      WORD    0d
+PosicaoFruta    WORD    0d
 
 Estado		WORD	1d
-
+Direcao         WORD    DIREITA
+Tamanho         WORD    0d
 
 
 
@@ -142,48 +143,49 @@ INT15           WORD    Timer
 ;------------------------------------------------------------------------------
 ; Rotina Interrupção Timer
 ;------------------------------------------------------------------------------
-Timer:  PUSH R1
-        PUSH R2
+Timer:  PUSH    R1
+        PUSH    R2
 
-        MOV  M[ CURSOR ], R1
-        MOV  R1, M[ Cabeca ]
+        MOV     M[ CURSOR ], R1
+        MOV     R1, M[ CABECA ]
 
-        CALL Mov_cobra
-        CALL ConfiguraTimer
+        CALL    GeraFruta
+        CALL    Mov_cobra
+        CALL    ConfiguraTimer
 
-        POP R2
-        POP R1
+        POP     R2
+        POP     R1
         RTI
 
 ;------------------------------------------------------------------------------
 ; Rotina Print
 ;------------------------------------------------------------------------------
-print:  PUSH R1
-        PUSH R2
-        PUSH R3 
-        PUSH R4
-        PUSH R5
+print:  PUSH    R1
+        PUSH    R2
+        PUSH    R3 
+        PUSH    R4
+        PUSH    R5
 
         MOV     R1, 0d
-        MOV     M[ TextIndex ], R1
-        MOV     M[ ColumnIndex], R1
+        MOV     M[ PosicaoTexto ], R1
+        MOV     M[ ColunaTexto], R1
 
-exec:   MOV     R1, M[ TextIndex ]
+exec:   MOV     R1, M[ PosicaoTexto ]
         ADD     R1, R5
         MOV     R2, M[ R1 ]
         CMP     R2, FIM_TEXTO
         JMP.Z   fim     
-        MOV     R3, M[ RowIndex ]
-        MOV     R4, M[ColumnIndex]
+        MOV     R3, M[ LinhaTexto ]
+        MOV     R4, M[ ColunaTexto ]
 
         SHL     R3, ROW_SHIFT
         OR      R3, R4
 
-        MOV     M[CURSOR], R3
-        MOV     M[IO_WRITE], R2
+        MOV     M[ CURSOR ], R3
+        MOV     M[ IO_WRITE ], R2
 
-        INC     M[TextIndex]
-        INC     M[ColumnIndex] 
+        INC     M[ PosicaoTexto ]
+        INC     M[ ColunaTexto ] 
         JMP     exec 
     
 fim:    POP     R5
@@ -204,7 +206,7 @@ print_tela:     PUSH R1
 
 exec1:          CALL    print
                 ADD     R5, R1
-                INC     M [ RowIndex ] 
+                INC     M [ LinhaTexto ] 
                 CMP     R5, 8798h
                 JMP.NP  exec1 
 
@@ -252,7 +254,7 @@ printCabeca:    PUSH R1
                 OR      R1, R2
 
                 MOV     M [ PosicaoCabeca], R1
-                MOV     R2, Cabeca
+                MOV     R2, CABECA
 
                 MOV     M [ CURSOR ], R1
                 MOV     M [ IO_WRITE], R2
@@ -303,8 +305,11 @@ Mov_cobra:      PUSH 	R1
                 CALL.Z  MovCobraDireita
 
                 CALL    printCabeca
+                CMP     M [ PosicaoCabeca ], M [ PosicaoFruta ]
+                JMP.NZ  FimMov_Cobra
+                INC     M [ Tamanho ]
 
-                POP 	R1
+FimMov_Cobra:   POP 	R1
                 RET
 
 ;------------------------------------------------------------------------------
@@ -317,6 +322,7 @@ MovCobraCima:           PUSH    R1
                         MOV     R1, M [ LinhaCabeca]
                         CMP     R1, LIMITE_SUPERIOR_TELA
                         CALL.Z  FimDeJogo
+
                         
 			POP     R1
                         RET
@@ -463,22 +469,41 @@ RandomV2:	PUSH R1
 			RET
 
 
-GenerateFruitRow: PUSH R1
-                  PUSH R2
+;------------------------------------------------------------------------------
+; Função Geradora de Fruta
+;------------------------------------------------------------------------------
+GeraFruta:              PUSH R1
+                        PUSH R2
 
 
-                  CALL RandomV2
-                  MOV  R1, M[ Random_Var ]
-                  MOV  R2, MAXIMO_COLUNAS
-                  DIV  R1, R2
-                  MOV  M[ ColunaFruta ], R2
+                        CALL RandomV2
+                        MOV  R1, M[ Random_Var ]
+                        MOV  R2, MAXIMO_COLUNAS
+                        DIV  R1, R2
+                        MOV  M[ ColunaFruta ], R2
 
+                        CALL RandomV2
+                        MOV  R1, M[ Random_Var ]
+                        MOV  R2, MAXIMO_LINHAS
+                        DIV  R1, R2
+                        MOV  M[ LinhaFruta ], R2
+                        
+                        MOV     R1, M [ LinhaFruta ]
+                        SHL     R1, 8d
+                        MOV     R2, M [ ColunaFruta ]
+                        OR      R1, R2
+                        MOV     M [ PosicaoFruta ], R1
 
-                  POP R2
-                  POP R1
+                        MOV     R1, M [ PosicaoFruta ]
+                        MOV     M [ CURSOR ], R1
+                        MOV     R1, FRUTA
+                        MOV     M [ IO_WRITE ], R1
+                        
 
-                  RET
+                        POP R2
+                        POP R1
 
+                        RET
 ;------------------------------------------------------------------------------
 ; Função Main
 ;------------------------------------------------------------------------------
