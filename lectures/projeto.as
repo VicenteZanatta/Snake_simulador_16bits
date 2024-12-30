@@ -39,17 +39,21 @@ MORTO		EQU	0d
 ; padrao de bits para geracao de numero aleatorio
 RND_MASK		EQU	8016h	; 1000 0000 0001 0110b
 LSB_MASK		EQU	0001h	; Mascara para testar o bit menos significativo do Random_Var
-PRIME_NUMBER_1	        EQU 11d
-PRIME_NUMBER_2	        EQU 13d
+PRIME_NUMBER_1	        EQU     11d
+PRIME_NUMBER_2	        EQU     13d
 
-MAXIMO_LINHAS           EQU 20d
-MAXIMO_COLUNAS          EQU 72d
-LIMITE_ESQUERDO_TELA    EQU 0d 
-LIMITE_INFERIOR_TELA    EQU 23d
-LIMITE_SUPERIOR_TELA    EQU 2d
-LIMITE_DIREITO_TELA     EQU 79d
+MAXIMO_LINHAS           EQU     20d
+MAXIMO_COLUNAS          EQU     72d
+LIMITE_ESQUERDO_TELA    EQU     0d 
+LIMITE_INFERIOR_TELA    EQU     23d
+LIMITE_SUPERIOR_TELA    EQU     2d
+LIMITE_DIREITO_TELA     EQU     79d
 
-
+PONTUACAO_MAXIMA        EQU     1560d
+POSICAO_PLACAR_1        EQU     0000000101001101b ; 01L x 77C  
+POSICAO_PLACAR_2        EQU     0000000101001100b ; 01L x 76C
+POSICAO_PLACAR_3        EQU     0000000101001011b ; 01L x 75C
+POSICAO_PLACAR_4        EQU     0000000101001010b ; 01L x 74C
 
 ;------------------------------------------------------------------------------
 ; ZONA II: definicao de variaveis
@@ -104,7 +108,7 @@ ColunaCabeca    WORD    40d
 PosicaoCabeca   WORD    0d
 
 LinhaCalda      WORD    12d
-Colunacalda     WORD    40d
+ColunaCalda     WORD    40d
 PosicaoCalda    WORD    0d
 
 ColunaFruta     WORD    0d
@@ -114,9 +118,12 @@ PosicaoFruta    WORD    0d
 Estado		WORD	1d
 Direcao         WORD    DIREITA
 Tamanho         WORD    0d
+TempoDeCiclo    WORD    5d
 
-
-
+Pontuacao1      WORD    '/'
+Pontuacao2      WORD    '0'
+Pontuacao3      WORD    '0'
+Pontuacao4      WORD    '0'
 
 ;------------------------------------------------------------------------------
 ; ZONA II: definicao de tabela de interrupções
@@ -156,6 +163,21 @@ Timer:  PUSH    R1
         POP     R2
         POP     R1
         RTI
+
+;------------------------------------------------------------------------------
+; Função Configura Timer
+;------------------------------------------------------------------------------
+ConfiguraTimer: PUSH 	R1
+
+                MOV 	R1, M [ TempoDeCiclo ]
+                MOV 	M [ TIMER_UNITS ], R1
+
+		MOV	R1, M [ Estado ]
+                MOV     M [ ACTIVATE_TIMER], R1
+
+Morto:          POP 	R1
+
+                RET
 
 ;------------------------------------------------------------------------------
 ; Rotina Print
@@ -245,8 +267,8 @@ FimDeJogo:      PUSH R1
 ;------------------------------------------------------------------------------
 ; Rotina Print Cabeça
 ;------------------------------------------------------------------------------
-printCabeca:    PUSH R1
-                PUSH R2
+printCobra:    PUSH R1
+               PUSH R2
 
                 MOV     R1, M [ LinhaCabeca ]
                 SHL     R1, 8d
@@ -264,28 +286,6 @@ printCabeca:    PUSH R1
                 RET
 
 ;------------------------------------------------------------------------------
-; Função Configura Timer
-;------------------------------------------------------------------------------
-ConfiguraTimer: PUSH 	R1
-
-                MOV 	R1, 5d
-                MOV 	M[ TIMER_UNITS ], R1
-
-		MOV	R1, M [ Estado ]
-		CMP	R1, VIVO
-		JMP.Z	Vivo
-
-		MOV	R1, OFF
-		MOV	M [ ACTIVATE_TIMER ], R1
-		JMP	Morto
-
-Vivo:           MOV 	R1, ON
-                MOV 	M[ ACTIVATE_TIMER ], R1
-
-Morto:          POP 	R1
-
-                RET
-;------------------------------------------------------------------------------
 ; Função Movimenta Cobra
 ;------------------------------------------------------------------------------
 Mov_cobra:      PUSH 	R1
@@ -294,17 +294,21 @@ Mov_cobra:      PUSH 	R1
 
                 CMP     R1, CIMA
                 CALL.Z  MovCobraCima
+                JMP.Z   FimMov_Cobra
 
                 CMP     R1, BAIXO
                 CALL.Z  MovCobraBaixo
+                JMP.Z   FimMov_Cobra
 
                 CMP     R1, ESQUERDA
                 CALL.Z  MovCobraEsquerda
+                JMP.Z   FimMov_Cobra
 
                 CMP     R1, DIREITA
                 CALL.Z  MovCobraDireita
+                JMP.Z   FimMov_Cobra
 
-                CALL    printCabeca
+                CALL    printCobra
                 MOV     R1, M [ PosicaoCabeca ]
                 CMP     R1, M [ PosicaoFruta ]
                 JMP.NZ  FimMov_Cobra
@@ -478,7 +482,7 @@ GeraFruta:              PUSH R1
                         PUSH R2
 
 
-                        CALL RandomV1
+                        CALL RandomV2
                         MOV  R1, M[ Random_Var ]
                         MOV  R2, MAXIMO_COLUNAS
                         DIV  R1, R2
@@ -495,14 +499,114 @@ GeraFruta:              PUSH R1
                         MOV     R2, M [ ColunaFruta ]
                         OR      R1, R2
                         MOV     M [ PosicaoFruta ], R1
+                        INC     M [ Tamanho ]
 
                         MOV     R1, M [ PosicaoFruta ]
                         MOV     M [ CURSOR ], R1
                         MOV     R1, FRUTA
                         MOV     M [ IO_WRITE ], R1
-                        
 
-                        POP R2
+;ATUALIZA PONTUAÇÃO
+;-------------------------------------------------------------------------------
+                        
+                        MOV     R1, M [ Pontuacao1 ]
+                        CMP     R1, '9'
+                        JMP.Z   AttDecimal
+
+                        INC     M [ Pontuacao1 ]        ; atualiza as unidades
+                        MOV     R1, POSICAO_PLACAR_1
+                        MOV     M [ CURSOR ], R1
+                        MOV     R1, M[ Pontuacao1 ]
+                        MOV     M [ IO_WRITE ], R1
+                        JMP     VerificaPontuacao
+
+AttDecimal:             MOV     R1, M [ Pontuacao2 ]
+                        CMP     R1, '9'
+                        JMP.Z   AttCentena
+
+                        MOV     R2, '0'                  ; altera as unidades para 0
+                        MOV     M [ Pontuacao1], R2
+                        MOV     R2, POSICAO_PLACAR_1
+                        MOV     M [ CURSOR ], R2
+                        MOV     R2, M[ Pontuacao1 ]
+                        MOV     M [ IO_WRITE ], R2
+                        
+                        INC     M [ Pontuacao2 ]
+                        MOV     R1, POSICAO_PLACAR_2
+                        MOV     M [ CURSOR ], R1
+                        MOV     R1, M[ Pontuacao2 ]
+                        MOV     M [ IO_WRITE ], R1
+                        JMP     VerificaPontuacao
+AttCentena:             MOV     R1, M [ Pontuacao2 ]
+                        CMP     R1, '9'
+                        JMP.Z   AttMilhares
+
+                        MOV     R2, '0'                 ; altera as unidades para 0
+                        MOV     M [ Pontuacao1], R2
+                        MOV     R2, POSICAO_PLACAR_1
+                        MOV     M [ CURSOR ], R2
+                        MOV     R2, M[ Pontuacao1 ]
+                        MOV     M [ IO_WRITE ], R2
+
+                        MOV     M [ Pontuacao2 ], R2    ; altera a dezana para 0
+                        MOV     R2, POSICAO_PLACAR_2
+                        MOV     M [ CURSOR ], R2
+                        MOV     R2, M[ Pontuacao2 ]
+                        MOV     M [ IO_WRITE ], R2
+                        
+                        INC     M [ Pontuacao3 ]
+                        MOV     R1, POSICAO_PLACAR_3
+                        MOV     M [ CURSOR ], R1
+                        MOV     R1, M[ Pontuacao3 ]
+                        MOV     M [ IO_WRITE ], R1
+                        JMP     VerificaPontuacao
+AttMilhares:            MOV     R1, M [ Pontuacao4 ]
+                        CMP     R1, '9'
+                        JMP.Z   AttMilhares
+
+                        MOV     R2, '0'                  ; altera as unidades para 0
+                        MOV     M [ Pontuacao1], R2
+                        MOV     R2, POSICAO_PLACAR_1
+                        MOV     M [ CURSOR ], R2
+                        MOV     R2, M[ Pontuacao1 ]
+                        MOV     M [ IO_WRITE ], R2
+
+                        MOV     M [ Pontuacao2 ], R2     ; altera a dezana para 0
+                        MOV     R2, POSICAO_PLACAR_2
+                        MOV     M [ CURSOR ], R2
+                        MOV     R2, M[ Pontuacao2 ]
+                        MOV     M [ IO_WRITE ], R2
+
+                        MOV     M [ Pontuacao3 ], R2     ; altera a centena para 0
+                        MOV     R2, POSICAO_PLACAR_3
+                        MOV     M [ CURSOR ], R2
+                        MOV     R2, M[ Pontuacao3 ]
+                        MOV     M [ IO_WRITE ], R2
+                        
+                        INC     M [ Pontuacao4 ]
+                        MOV     R1, POSICAO_PLACAR_4
+                        MOV     M [ CURSOR ], R1
+                        MOV     R1, M[ Pontuacao4 ]
+                        MOV     M [ IO_WRITE ], R1
+
+;-------------------------------------------------------------------------------
+
+
+
+;VERIFICA PONTUAÇÃO MAXIMA
+;------------------------------------------------------------------------------
+
+VerificaPontuacao:      MOV     R1, M [ Tamanho ]
+                        CMP     R1, PONTUACAO_MAXIMA
+                        JMP.NZ  FimFruta
+                        MOV     R1,  MORTO
+                        MOV     M [ Estado ], R1 
+;------------------------------------------------------------------------------
+
+
+
+
+FimFruta:               POP R2
                         POP R1
 
                         RET
@@ -523,8 +627,11 @@ Main:			ENI
                         SHL  R1, 8d 
                         OR   R1, R2 
 
+                        
+                        
+                        
                         CALL    print_tela
-                        CALL    printCabeca
+                        CALL    printCobra
                         CALL    GeraFruta
                         CALL    ConfiguraTimer
 
