@@ -25,10 +25,10 @@ CORPO           EQU     'o'
 CALDA           EQU     '.'
 FRUTA           EQU     '+'
 
-CIMA            EQU     0d
+CIMA            EQU     -1d
 BAIXO           EQU     1d                 
 DIREITA         EQU     2d
-ESQUERDA        EQU     3d
+ESQUERDA        EQU     -2d
 
 ON              EQU     1d
 OFF             EQU     0d
@@ -290,6 +290,8 @@ printCobra:    PUSH R1
 ;------------------------------------------------------------------------------
 Mov_cobra:      PUSH 	R1
 
+                
+                
                 MOV 	R1, M[ Direcao ]
 
                 CMP     R1, CIMA
@@ -383,10 +385,17 @@ MovCobraEsquerda:       PUSH    R1
 ; Função MudaDirecaoCima
 ;------------------------------------------------------------------------------
 MudaDirecaoCima:        PUSH    R1
+                        PUSH    R2
 
+                        MOV     R1, CIMA
+                        MOV     R2, M [ Direcao ]
+                        ADD     R1, R2
+                        CMP     R1, 0d
+                        JMP.Z   FimMudaDirecaoCima
                         MOV     R1, CIMA
                         MOV     M [ Direcao ], R1
                         
+FimMudaDirecaoCima:     POP     R2
                         POP     R1
                         RTI
 
@@ -394,10 +403,17 @@ MudaDirecaoCima:        PUSH    R1
 ; Função MudaDirecaoBaixo
 ;------------------------------------------------------------------------------
 MudaDirecaoBaixo:       PUSH    R1
+                        PUSH    R2
 
                         MOV     R1, BAIXO
+                        MOV     R2, M [ Direcao ]
+                        ADD     R1, R2
+                        CMP     R1, 0d       
+                        JMP.Z   FimMudaDirecaoBaixo
+                        MOV     R1, BAIXO 
                         MOV     M [ Direcao ], R1
-
+                        
+FimMudaDirecaoBaixo:    POP     R2
                         POP     R1
                         RTI
 
@@ -405,10 +421,17 @@ MudaDirecaoBaixo:       PUSH    R1
 ; Função MudaDirecaoEsquerda
 ;------------------------------------------------------------------------------
 MudaDirecaoEsquerda:    PUSH    R1
+                        PUSH    R2
 
                         MOV     R1, ESQUERDA
-                        MOV     M [Direcao], R1
-
+                        MOV     R2, M [ Direcao ]
+                        ADD     R1, R2
+                        CMP     R1, 0d
+                        JMP.Z   FimMudaDirecaoEsq
+                        MOV     R1, ESQUERDA
+                        MOV     M [ Direcao ], R1
+                        
+FimMudaDirecaoEsq:      POP     R2
                         POP     R1
                         RTI
 
@@ -416,10 +439,17 @@ MudaDirecaoEsquerda:    PUSH    R1
 ; Função MudaDirecaoDireita
 ;------------------------------------------------------------------------------
 MudaDirecaoDireita:     PUSH    R1
+                        PUSH    R2
 
                         MOV     R1, DIREITA
-                        MOV     M [Direcao], R1
-
+                        MOV     R2, M [ Direcao ]
+                        ADD     R1, R2
+                        CMP     R1, 0d
+                        JMP.Z   FimMudaDirecaoDir
+                        MOV     R1, DIREITA
+                        MOV     M [ Direcao ], R1
+                        
+FimMudaDirecaoDir:      POP     R2
                         POP     R1
                         RTI
 
