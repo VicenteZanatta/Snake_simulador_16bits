@@ -43,7 +43,7 @@ PRIME_NUMBER_1	        EQU     11d
 PRIME_NUMBER_2	        EQU     13d
 
 MAXIMO_LINHAS           EQU     20d
-MAXIMO_COLUNAS          EQU     72d
+MAXIMO_COLUNAS          EQU     77d
 LIMITE_ESQUERDO_TELA    EQU     0d 
 LIMITE_INFERIOR_TELA    EQU     23d
 LIMITE_SUPERIOR_TELA    EQU     2d
@@ -117,13 +117,15 @@ PosicaoFruta    WORD    0d
 
 Estado		WORD	1d
 Direcao         WORD    DIREITA
-Tamanho         WORD    0d
+Tamanho         WORD    1d
 TempoDeCiclo    WORD    5d
 
 Pontuacao1      WORD    '/'
 Pontuacao2      WORD    '0'
 Pontuacao3      WORD    '0'
 Pontuacao4      WORD    '0'
+
+Vetor           TAB     1560d
 
 ;------------------------------------------------------------------------------
 ; ZONA II: definicao de tabela de interrupções
@@ -157,6 +159,7 @@ Timer:  PUSH    R1
         MOV     M[ CURSOR ], R1
         MOV     R1, M[ CABECA ]
 
+        CALL    GeraFruta
         CALL    Mov_cobra
         CALL    ConfiguraTimer
 
@@ -241,9 +244,6 @@ exec1:          CALL    print
 ;------------------------------------------------------------------------------
 FimDeJogo:      PUSH R1
 
-                MOV     R1, MORTO
-                MOV     M[ Estado ], R1
-
                 MOV     R1, M [ Perdeu_L1 ]
                 MOV     M [ L10 ], R1
                 MOV     R1, M [ Perdeu_L2 ]
@@ -259,16 +259,30 @@ FimDeJogo:      PUSH R1
 
                 CALL print_tela
                 
+                MOV     R1, MORTO
+                MOV     M[ Estado ], R1
 
                 POP    R1
 
+;------------------------------------------------------------------------------
+; Rotina Print Cobra
+;------------------------------------------------------------------------------
+printCobra:     PUSH    R1
+                PUSH    R2
+                PUSH    R3
+
+                MOV     R1, 0d
+ ImprimeCorpo:  MOV     R2, M [ R1 + Vetor] ; R2 Recebe a posição do corpo de deve ser imprimido
+                MOV     R3, CORPO
+
+                MOV     M [ CURSOR ], R2
+                MOV     M [ IO_WRITE ], R3
+
+                INC     R1
+                CMP     R1, Tamanho
+                JMP.NZ  ImprimeCorpo     
 
 
-;------------------------------------------------------------------------------
-; Rotina Print Cabeça
-;------------------------------------------------------------------------------
-printCobra:    PUSH R1
-               PUSH R2
 
                 MOV     R1, M [ LinhaCabeca ]
                 SHL     R1, 8d
@@ -281,14 +295,17 @@ printCobra:    PUSH R1
                 MOV     M [ CURSOR ], R1
                 MOV     M [ IO_WRITE ], R2
 
-                POP R2
-                POP R1
+                POP     R3
+                POP     R2
+                POP     R1
                 RET
 
 ;------------------------------------------------------------------------------
 ; Função Movimenta Cobra
 ;------------------------------------------------------------------------------
 Mov_cobra:      PUSH 	R1
+                PUSH    R2
+                PUSH    R3
 
                 
                 
@@ -310,14 +327,25 @@ Mov_cobra:      PUSH 	R1
                 CALL.Z  MovCobraDireita
                 JMP.Z   FimMov_Cobra
 
-                CALL    printCobra
+                CALL    printCobra             
+
+                MOV     R2, M [ PosicaoCabeca ]
+                MOV     R1, 0d
+AttPosicoes:    MOV     R3, M [ R1 + Vetor ]
+                MOV     M [ R1 + Vetor ], R2
+                MOV     R2, R3
+                INC     R1
+                CMP     R1, M [ Tamanho ]
+                JMP.NZ  AttPosicoes    
+
                 MOV     R1, M [ PosicaoCabeca ]
                 CMP     R1, M [ PosicaoFruta ]
                 JMP.NZ  FimMov_Cobra
-                INC     M [ Tamanho ]
                 CALL    GeraFruta
 
-FimMov_Cobra:   POP 	R1
+FimMov_Cobra:   POP 	R3
+                POP     R2
+                POP     R1
                 RET
 
 ;------------------------------------------------------------------------------
@@ -508,21 +536,23 @@ RandomV2:	PUSH R1
 ;------------------------------------------------------------------------------
 ; Função Geradora de Fruta
 ;------------------------------------------------------------------------------
-GeraFruta:              PUSH R1
-                        PUSH R2
+GeraFruta:              PUSH    R1
+                        PUSH    R2
 
 
-                        CALL RandomV2
-                        MOV  R1, M[ Random_Var ]
-                        MOV  R2, MAXIMO_COLUNAS
-                        DIV  R1, R2
-                        MOV  M[ ColunaFruta ], R2
+                        CALL    RandomV2
+                        MOV     R1, M[ Random_Var ]
+                        MOV     R2, MAXIMO_COLUNAS
+                        DIV     R1, R2
+                        ADD     R2, 2d
+                        MOV     M[ ColunaFruta ], R2
 
-                        CALL RandomV2
-                        MOV  R1, M[ Random_Var ]
-                        MOV  R2, MAXIMO_LINHAS
-                        DIV  R1, R2
-                        MOV  M[ LinhaFruta ], R2
+                        CALL    RandomV2
+                        MOV     R1, M[ Random_Var ]
+                        MOV     R2, MAXIMO_LINHAS
+                        DIV     R1, R2
+                        ADD     R2, 2d
+                        MOV     M[ LinhaFruta ], R2
                         
                         MOV     R1, M [ LinhaFruta ]
                         SHL     R1, 8d
@@ -567,6 +597,7 @@ AttDecimal:             MOV     R1, M [ Pontuacao2 ]
                         MOV     R1, M[ Pontuacao2 ]
                         MOV     M [ IO_WRITE ], R1
                         JMP     VerificaPontuacao
+
 AttCentena:             MOV     R1, M [ Pontuacao2 ]
                         CMP     R1, '9'
                         JMP.Z   AttMilhares
@@ -590,6 +621,7 @@ AttCentena:             MOV     R1, M [ Pontuacao2 ]
                         MOV     R1, M[ Pontuacao3 ]
                         MOV     M [ IO_WRITE ], R1
                         JMP     VerificaPontuacao
+                        
 AttMilhares:            MOV     R1, M [ Pontuacao4 ]
                         CMP     R1, '9'
                         JMP.Z   AttMilhares
@@ -651,14 +683,19 @@ Main:			ENI
 			MOV	R1, CURSOR_INIT	        ; We need to initialize the cursor 
 			MOV	M[ CURSOR ], R1		; with value CURSOR_INIT
 
+                        MOV R1, 0d
+                        MOV R2, 1561d
+                        MOV R3, 0d
+
+InicializaVetor:        MOV M[ R1 + Vetor ], R3
+                        INC R1 
+                        CMP R1, R2
+                        JMP.NZ InicializaVetor                        
 
                         MOV  R1, 12d                    ;posiciona o cursor no
                         MOV  R2, 40d                    ;meio da tela
                         SHL  R1, 8d 
-                        OR   R1, R2 
-
-                        
-                        
+                        OR   R1, R2                         
                         
                         CALL    print_tela
                         CALL    printCobra
