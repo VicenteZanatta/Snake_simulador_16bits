@@ -23,6 +23,7 @@ ACTIVATE_TIMER  EQU     FFF7h
 CABECA          EQU     '@'
 CORPO           EQU     'o'
 CALDA           EQU     '.'
+BORRACHA        EQU     ' '
 FRUTA           EQU     '+'
 
 CIMA            EQU     -1d
@@ -271,18 +272,6 @@ printCobra:     PUSH    R1
                 PUSH    R2
                 PUSH    R3
 
-                MOV     R1, 0d
- ImprimeCorpo:  MOV     R2, M [ R1 + Vetor] ; R2 Recebe a posição do corpo de deve ser imprimido
-                MOV     R3, CORPO
-
-                MOV     M [ CURSOR ], R2
-                MOV     M [ IO_WRITE ], R3
-
-                INC     R1
-                CMP     R1, Tamanho
-                JMP.NZ  ImprimeCorpo     
-
-
 
                 MOV     R1, M [ LinhaCabeca ]
                 SHL     R1, 8d
@@ -295,6 +284,21 @@ printCobra:     PUSH    R1
                 MOV     M [ CURSOR ], R1
                 MOV     M [ IO_WRITE ], R2
 
+                MOV     R1, 0d
+ ImprimeCorpo:  MOV     R2, M [ R1 + Vetor ]     ; R2 Recebe a posição do corpo de deve ser imprimido
+                MOV     R3, CORPO
+
+                MOV     M [ CURSOR ], R2
+                MOV     M [ IO_WRITE ], R3
+
+                INC     R1
+                CMP     R1, Tamanho
+                JMP.NZ  ImprimeCorpo
+
+                MOV     R3, BORRACHA            ; Apaga a ultima posição 
+                MOV     M [ IO_WRITE ], R3    
+
+
                 POP     R3
                 POP     R2
                 POP     R1
@@ -306,9 +310,7 @@ printCobra:     PUSH    R1
 Mov_cobra:      PUSH 	R1
                 PUSH    R2
                 PUSH    R3
-
-                
-                
+                            
                 MOV 	R1, M[ Direcao ]
 
                 CMP     R1, CIMA
@@ -334,6 +336,11 @@ Mov_cobra:      PUSH 	R1
 AttPosicoes:    MOV     R3, M [ R1 + Vetor ]
                 MOV     M [ R1 + Vetor ], R2
                 MOV     R2, R3
+
+                CMP     M [ PosicaoCabeca], R3
+                CALL.Z  FimDeJogo
+                JMP.Z   FimMov_Cobra
+
                 INC     R1
                 CMP     R1, M [ Tamanho ]
                 JMP.NZ  AttPosicoes    
