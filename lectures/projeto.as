@@ -119,9 +119,9 @@ PosicaoFruta    WORD    0d
 Estado		WORD	1d
 Direcao         WORD    DIREITA
 Tamanho         WORD    1d
-TempoDeCiclo    WORD    5d
+TempoDeCiclo    WORD    2d
 
-Pontuacao1      WORD    '/'
+Pontuacao1      WORD    '0'
 Pontuacao2      WORD    '0'
 Pontuacao3      WORD    '0'
 Pontuacao4      WORD    '0'
@@ -160,7 +160,7 @@ Timer:  PUSH    R1
         MOV     M[ CURSOR ], R1
         MOV     R1, M[ CABECA ]
 
-        CALL    GeraFruta
+        ;CALL    GeraFruta
         CALL    Mov_cobra
         CALL    ConfiguraTimer
 
@@ -269,8 +269,18 @@ FimDeJogo:      PUSH R1
 ; Rotina Print Cobra
 ;------------------------------------------------------------------------------
 printCobra:     PUSH    R1
+
+                CALL    PrintCabeca
+                CALL    PrintCorpo
+
+                POP     R1
+                RET
+
+;------------------------------------------------------------------------------
+; Rotina Print Cabeca
+;------------------------------------------------------------------------------
+PrintCabeca:    PUSH    R1
                 PUSH    R2
-                PUSH    R3
 
 
                 MOV     R1, M [ LinhaCabeca ]
@@ -284,16 +294,29 @@ printCobra:     PUSH    R1
                 MOV     M [ CURSOR ], R1
                 MOV     M [ IO_WRITE ], R2
 
+                POP     R2
+                POP     R1
+                RET
+
+
+;------------------------------------------------------------------------------
+; Rotina Print Corpo
+;------------------------------------------------------------------------------
+PrintCorpo:     PUSH    R1
+                PUSH    R2
+                PUSH    R3
+
+
                 MOV     R1, 0d
- ImprimeCorpo:  MOV     R2, M [ R1 + Vetor ]     ; R2 Recebe a posição do corpo de deve ser imprimido
+LoopPrintCorpo: MOV     R2, M [ R1 + Vetor ]     ; R2 Recebe a posição do corpo de deve ser imprimido
                 MOV     R3, CORPO
 
                 MOV     M [ CURSOR ], R2
                 MOV     M [ IO_WRITE ], R3
 
                 INC     R1
-                CMP     R1, Tamanho
-                JMP.NZ  ImprimeCorpo
+                CMP     R1, M [ Tamanho ]
+                JMP.NZ  LoopPrintCorpo
 
                 MOV     R3, BORRACHA            ; Apaga a ultima posição 
                 MOV     M [ IO_WRITE ], R3    
@@ -327,33 +350,48 @@ Mov_cobra:      PUSH 	R1
 
                 CMP     R1, DIREITA
                 CALL.Z  MovCobraDireita
-                JMP.Z   FimMov_Cobra
+                JMP.Z   FimMov_Cobra                 
 
-                CALL    printCobra             
-
-                MOV     R2, M [ PosicaoCabeca ]
-                MOV     R1, 0d
-AttPosicoes:    MOV     R3, M [ R1 + Vetor ]
-                MOV     M [ R1 + Vetor ], R2
-                MOV     R2, R3
-
-                CMP     M [ PosicaoCabeca], R3
-                CALL.Z  FimDeJogo
-                JMP.Z   FimMov_Cobra
-
-                INC     R1
-                CMP     R1, M [ Tamanho ]
-                JMP.NZ  AttPosicoes    
+                CALL    printCobra
+                CALL    AttPosicoes
 
                 MOV     R1, M [ PosicaoCabeca ]
                 CMP     R1, M [ PosicaoFruta ]
                 JMP.NZ  FimMov_Cobra
-                CALL    GeraFruta
+
+                CALL    ComeFruta
 
 FimMov_Cobra:   POP 	R3
                 POP     R2
                 POP     R1
                 RET
+;------------------------------------------------------------------------------
+; Função Função Atualiza Posições
+;------------------------------------------------------------------------------
+AttPosicoes:            PUSH    R1
+                        PUSH    R2
+                        PUSH    R3               
+               
+                        MOV     R2, M [ PosicaoCabeca ]
+                        MOV     R1, 0d
+LoopAttPosicoes:        MOV     R3, M [ R1 + Vetor ]
+                        MOV     M [ R1 + Vetor ], R2
+                        MOV     R2, R3
+
+                        CMP     M [ PosicaoCabeca], R3
+                        CALL.Z  FimDeJogo
+                        JMP.Z   FimMov_Cobra
+
+                        INC     R1
+                        CMP     R1, M [ Tamanho ]
+                        JMP.NZ  LoopAttPosicoes
+
+                        POP     R3
+                        POP     R2
+                        POP     R1
+                        RET
+
+
 
 ;------------------------------------------------------------------------------
 ; Função Movimenta Cobra Cima
@@ -454,7 +492,7 @@ FimMudaDirecaoBaixo:    POP     R2
 
 ;------------------------------------------------------------------------------
 ; Função MudaDirecaoEsquerda
-;------------------------------------------------------------------------------
+;-------------------------------------------------------------------------------
 MudaDirecaoEsquerda:    PUSH    R1
                         PUSH    R2
 
@@ -541,41 +579,24 @@ RandomV2:	PUSH R1
 
 
 ;------------------------------------------------------------------------------
-; Função Geradora de Fruta
+; Função Come Fruta
 ;------------------------------------------------------------------------------
-GeraFruta:              PUSH    R1
+ComeFruta:     PUSH R1
+
+
+                CALL    AtualizaPontuacao
+                CALL    VerificaPontuacao
+                CALL    GeraFruta
+                
+                POP R1
+                RET
+
+;-------------------------------------------------------------------------------
+;ATUALIZA PONTUAÇÃO
+;-------------------------------------------------------------------------------                        
+AtualizaPontuacao:      PUSH    R1
                         PUSH    R2
 
-
-                        CALL    RandomV2
-                        MOV     R1, M[ Random_Var ]
-                        MOV     R2, MAXIMO_COLUNAS
-                        DIV     R1, R2
-                        ADD     R2, 2d
-                        MOV     M[ ColunaFruta ], R2
-
-                        CALL    RandomV2
-                        MOV     R1, M[ Random_Var ]
-                        MOV     R2, MAXIMO_LINHAS
-                        DIV     R1, R2
-                        ADD     R2, 2d
-                        MOV     M[ LinhaFruta ], R2
-                        
-                        MOV     R1, M [ LinhaFruta ]
-                        SHL     R1, 8d
-                        MOV     R2, M [ ColunaFruta ]
-                        OR      R1, R2
-                        MOV     M [ PosicaoFruta ], R1
-                        INC     M [ Tamanho ]
-
-                        MOV     R1, M [ PosicaoFruta ]
-                        MOV     M [ CURSOR ], R1
-                        MOV     R1, FRUTA
-                        MOV     M [ IO_WRITE ], R1
-
-;ATUALIZA PONTUAÇÃO
-;-------------------------------------------------------------------------------
-                        
                         MOV     R1, M [ Pontuacao1 ]
                         CMP     R1, '9'
                         JMP.Z   AttDecimal
@@ -585,7 +606,7 @@ GeraFruta:              PUSH    R1
                         MOV     M [ CURSOR ], R1
                         MOV     R1, M[ Pontuacao1 ]
                         MOV     M [ IO_WRITE ], R1
-                        JMP     VerificaPontuacao
+                        JMP     FimAttPontuacao
 
 AttDecimal:             MOV     R1, M [ Pontuacao2 ]
                         CMP     R1, '9'
@@ -603,7 +624,7 @@ AttDecimal:             MOV     R1, M [ Pontuacao2 ]
                         MOV     M [ CURSOR ], R1
                         MOV     R1, M[ Pontuacao2 ]
                         MOV     M [ IO_WRITE ], R1
-                        JMP     VerificaPontuacao
+                        JMP     FimAttPontuacao
 
 AttCentena:             MOV     R1, M [ Pontuacao2 ]
                         CMP     R1, '9'
@@ -627,11 +648,11 @@ AttCentena:             MOV     R1, M [ Pontuacao2 ]
                         MOV     M [ CURSOR ], R1
                         MOV     R1, M[ Pontuacao3 ]
                         MOV     M [ IO_WRITE ], R1
-                        JMP     VerificaPontuacao
+                        JMP     FimAttPontuacao
                         
 AttMilhares:            MOV     R1, M [ Pontuacao4 ]
                         CMP     R1, '9'
-                        JMP.Z   AttMilhares
+                        JMP.Z   FimAttPontuacao
 
                         MOV     R2, '0'                  ; altera as unidades para 0
                         MOV     M [ Pontuacao1], R2
@@ -658,31 +679,65 @@ AttMilhares:            MOV     R1, M [ Pontuacao4 ]
                         MOV     R1, M[ Pontuacao4 ]
                         MOV     M [ IO_WRITE ], R1
 
-;-------------------------------------------------------------------------------
+FimAttPontuacao:        INC     M [ Tamanho ]
 
+                        POP     R2
+                        POP     R1
+                        RET
 
-
-;VERIFICA PONTUAÇÃO MAXIMA
 ;------------------------------------------------------------------------------
-
-VerificaPontuacao:      MOV     R1, M [ Tamanho ]
-                        CMP     R1, PONTUACAO_MAXIMA
-                        JMP.NZ  FimFruta
-                        MOV     R1,  MORTO
-                        MOV     M [ Estado ], R1 
+; Função Geradora de Fruta
 ;------------------------------------------------------------------------------
+GeraFruta:              PUSH    R1
+                        PUSH    R2
 
 
+                        CALL    RandomV2
+                        MOV     R1, M[ Random_Var ]
+                        MOV     R2, MAXIMO_COLUNAS
+                        DIV     R1, R2
+                        ADD     R2, 2d
+                        MOV     M[ ColunaFruta ], R2
 
+                        CALL    RandomV2
+                        MOV     R1, M[ Random_Var ]
+                        MOV     R2, MAXIMO_LINHAS
+                        DIV     R1, R2
+                        ADD     R2, 2d
+                        MOV     M[ LinhaFruta ], R2
+                        
+                        MOV     R1, M [ LinhaFruta ]
+                        SHL     R1, 8d
+                        MOV     R2, M [ ColunaFruta ]
+                        OR      R1, R2
+                        MOV     M [ PosicaoFruta ], R1
+
+                        MOV     R1, M [ PosicaoFruta ]
+                        MOV     M [ CURSOR ], R1
+                        MOV     R1, FRUTA
+                        MOV     M [ IO_WRITE ], R1
 
 FimFruta:               POP R2
                         POP R1
 
                         RET
+;-------------------------------------------------------------------------------
+;VERIFICA PONTUAÇÃO MAXIMA
+;------------------------------------------------------------------------------
+VerificaPontuacao:      PUSH     R1
+
+                        MOV     R1, M [ Tamanho ]
+                        CMP     R1, PONTUACAO_MAXIMA
+                        JMP.NZ  FimVerificaPontuacao
+                        MOV     R1,  MORTO
+                        MOV     M [ Estado ], R1
+
+FimVerificaPontuacao:   POP     R1
+                        RET 
+
 ;------------------------------------------------------------------------------
 ; Função Main
 ;------------------------------------------------------------------------------
-
 Main:			ENI
 
 			MOV	R1, INITIAL_SP
@@ -690,22 +745,12 @@ Main:			ENI
 			MOV	R1, CURSOR_INIT	        ; We need to initialize the cursor 
 			MOV	M[ CURSOR ], R1		; with value CURSOR_INIT
 
-                        MOV R1, 0d
-                        MOV R2, 1561d
-                        MOV R3, 0d
-
-InicializaVetor:        MOV M[ R1 + Vetor ], R3
-                        INC R1 
-                        CMP R1, R2
-                        JMP.NZ InicializaVetor                        
-
                         MOV  R1, 12d                    ;posiciona o cursor no
                         MOV  R2, 40d                    ;meio da tela
                         SHL  R1, 8d 
                         OR   R1, R2                         
                         
                         CALL    print_tela
-                        CALL    printCobra
                         CALL    GeraFruta
                         CALL    ConfiguraTimer
 
