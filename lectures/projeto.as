@@ -21,8 +21,6 @@ TIMER_UNITS     EQU     FFF6h
 ACTIVATE_TIMER  EQU     FFF7h
 
 CABECA          EQU     '@'
-CORPO           EQU     'o'
-CALDA           EQU     '.'
 BORRACHA        EQU     ' '
 FRUTA           EQU     '+'
 
@@ -121,10 +119,12 @@ Direcao         WORD    DIREITA
 Tamanho         WORD    1d
 TempoDeCiclo    WORD    2d
 
-Pontuacao1      WORD    '0'
-Pontuacao2      WORD    '0'
+Pontuacao1      WORD    '8'
+Pontuacao2      WORD    '9'
 Pontuacao3      WORD    '0'
 Pontuacao4      WORD    '0'
+
+Corpo           WORD    'o'
 
 Vetor           TAB     1560d
 
@@ -151,7 +151,7 @@ INT15           WORD    Timer
                 JMP     Main 
 
 
-;------------------------------------------------------------------------------
+;------------------------------------------------------------------------------ 
 ; Rotina Interrupção Timer
 ;------------------------------------------------------------------------------
 Timer:  PUSH    R1
@@ -160,7 +160,6 @@ Timer:  PUSH    R1
         MOV     M[ CURSOR ], R1
         MOV     R1, M[ CABECA ]
 
-        ;CALL    GeraFruta
         CALL    Mov_cobra
         CALL    ConfiguraTimer
 
@@ -245,6 +244,12 @@ exec1:          CALL    print
 ;------------------------------------------------------------------------------
 FimDeJogo:      PUSH R1
 
+                MOV     R1, 'X'
+                MOV     M [ Corpo ], R1
+
+                CALL    PrintCorpo
+                
+                
                 MOV     R1, M [ Perdeu_L1 ]
                 MOV     M [ L10 ], R1
                 MOV     R1, M [ Perdeu_L2 ]
@@ -258,7 +263,7 @@ FimDeJogo:      PUSH R1
                 MOV     R1, M [ Perdeu_L6 ]
                 MOV     M [ L15 ], R1
 
-                CALL print_tela
+                CALL    print_tela
                 
                 MOV     R1, MORTO
                 MOV     M[ Estado ], R1
@@ -309,7 +314,7 @@ PrintCorpo:     PUSH    R1
 
                 MOV     R1, 0d
 LoopPrintCorpo: MOV     R2, M [ R1 + Vetor ]     ; R2 Recebe a posição do corpo de deve ser imprimido
-                MOV     R3, CORPO
+                MOV     R3, M [ Corpo ]
 
                 MOV     M [ CURSOR ], R2
                 MOV     M [ IO_WRITE ], R3
@@ -378,7 +383,7 @@ LoopAttPosicoes:        MOV     R3, M [ R1 + Vetor ]
                         MOV     M [ R1 + Vetor ], R2
                         MOV     R2, R3
 
-                        CMP     M [ PosicaoCabeca], R3
+                        CMP     M [ PosicaoCabeca], R3 ; compara a posição atual da cabeça da cobra com uma das posições do corpo
                         CALL.Z  FimDeJogo
                         JMP.Z   FimMov_Cobra
 
@@ -463,8 +468,9 @@ MudaDirecaoCima:        PUSH    R1
                         MOV     R1, CIMA
                         MOV     R2, M [ Direcao ]
                         ADD     R1, R2
-                        CMP     R1, 0d
+                        CMP     R1, 0d                  ; verifica se a nova direção não é inversa da posição atual
                         JMP.Z   FimMudaDirecaoCima
+                        
                         MOV     R1, CIMA
                         MOV     M [ Direcao ], R1
                         
