@@ -25,8 +25,8 @@ CABECA          EQU     '@'
 BORRACHA        EQU     ' '
 FRUTA           EQU     '+'
 
-CIMA            EQU     -1d
-BAIXO           EQU     1d                 
+CIMA            EQU     -1d             ; valores das direções são definidos como valores inversos para realizar a verificação que impede mudança de 180° na movimentação da cobra.
+BAIXO           EQU     1d              ; a verificação consiste em somar os valores definidos nas constantes, caso a soma seja 0, impede a mudança de direção.   
 DIREITA         EQU     2d
 ESQUERDA        EQU     -2d
 
@@ -49,8 +49,9 @@ LIMITE_INFERIOR_TELA    EQU     23d
 LIMITE_SUPERIOR_TELA    EQU     2d
 LIMITE_DIREITO_TELA     EQU     79d
 
-PONTUACAO_MAXIMA        EQU     1560d
-POSICAO_PLACAR_1        EQU     0000000101001101b ; 01L x 77C  
+PONTUACAO_MAXIMA        EQU     1560d   ; numero de posições posiveis para serem ocupadas pela cobra no mapa
+
+POSICAO_PLACAR_1        EQU     0000000101001101b ; 01L x 77C   (os 8 bits mais significativos indicam a linha e os 8 menos indicam a coluna)
 POSICAO_PLACAR_2        EQU     0000000101001100b ; 01L x 76C
 POSICAO_PLACAR_3        EQU     0000000101001011b ; 01L x 75C
 POSICAO_PLACAR_4        EQU     0000000101001010b ; 01L x 74C
@@ -86,42 +87,58 @@ L19             STR     '*                                                      
 L20             STR     '*                                                                              *', FIM_TEXTO
 L21             STR     '*                                                                              *', FIM_TEXTO
 L22             STR     '*                                                                              *', FIM_TEXTO
-L23             STR     '********************************************************************************', FIM_TEXTO    
+L23             STR     '********************************************************************************', FIM_TEXTO   
 
-Perdeu_L1       STR     '*             _   _                 ______            _                        *', FIM_TEXTO
-Perdeu_L2       STR     '*            | | | |                | ___ \          | |                       *', FIM_TEXTO
-Perdeu_L3       STR     '*            | | | | ___   ___ ___  | |_/ /__ ____ __| | ___ _   _             *', FIM_TEXTO
-Perdeu_L4       STR     '*            | | | |/ _ \ / __/ _ \ |  __/ _ \ __/ _   |/ _ \ | | |            *', FIM_TEXTO
-Perdeu_L5       STR     '*            \ \_/ / (_) | (_|  __/ | | |  __/ | | (_| |  __/ |_| |            *', FIM_TEXTO
-Perdeu_L6       STR     '*             \___/ \___/ \___\___| \_|  \___|_|  \____|\___|\____|            *', FIM_TEXTO
+Perdeu_L0       STR     '********************************************************************************', FIM_TEXTO
+Perdeu_L1       STR     '* A COBRA VAI FUMAR                                              Tamanho: 0000 *', FIM_TEXTO
+Perdeu_L2       STR     '********************************************************************************', FIM_TEXTO
+Perdeu_L3       STR     '*                                                                              *', FIM_TEXTO
+Perdeu_L4       STR     '*                                                                              *', FIM_TEXTO
+Perdeu_L5       STR     '*                                                                              *', FIM_TEXTO
+Perdeu_L6       STR     '*                                                                              *', FIM_TEXTO
+Perdeu_L7       STR     '*                                                                              *', FIM_TEXTO
+Perdeu_L8       STR     '*                                                                              *', FIM_TEXTO
+Perdeu_L9       STR     '*             _   _                 ______            _                        *', FIM_TEXTO
+Perdeu_L10      STR     '*            | | | |                | ___ \          | |                       *', FIM_TEXTO
+Perdeu_L11      STR     '*            | | | | ___   ___ ___  | |_/ /__ ____ __| | ___ _   _             *', FIM_TEXTO
+Perdeu_L12      STR     '*            | | | |/ _ \ / __/ _ \ |  __/ _ \ __/ _   |/ _ \ | | |            *', FIM_TEXTO
+Perdeu_L13      STR     '*            \ \_/ / (_) | (_|  __/ | | |  __/ | | (_| |  __/ |_| |            *', FIM_TEXTO
+Perdeu_L14      STR     '*             \___/ \___/ \___\___| \_|  \___|_|  \____|\___|\____|            *', FIM_TEXTO
+Perdeu_L15      STR     '*                                                                              *', FIM_TEXTO
+Perdeu_L16      STR     '*                                                                              *', FIM_TEXTO
+Perdeu_L17      STR     '*                                                                              *', FIM_TEXTO
+Perdeu_L18      STR     '*                                                                              *', FIM_TEXTO
+Perdeu_L19      STR     '*                                                                              *', FIM_TEXTO
+Perdeu_L20      STR     '*                                                                              *', FIM_TEXTO
+Perdeu_L21      STR     '*                                                                              *', FIM_TEXTO
+Perdeu_L22      STR     '*                                                                              *', FIM_TEXTO
+Perdeu_L23      STR     '********************************************************************************', FIM_TEXTO   
 
+
+
+Random_Var	WORD	A5A5h  ; 1010 0101 1010 0101
+RandomState     WORD	1d
 
 LinhaTexto      WORD    0d
 ColunaTexto     WORD    0d
 PosicaoTexto    WORD    0d
 
-Random_Var	WORD	A5A5h  ; 1010 0101 1010 0101
-RandomState     WORD	1d
-
 LinhaCabeca     WORD    12d
 ColunaCabeca    WORD    40d
 PosicaoCabeca   WORD    0d
-
-LinhaCalda      WORD    12d
-ColunaCalda     WORD    40d
-PosicaoCalda    WORD    0d
 
 ColunaFruta     WORD    0d
 LinhaFruta      WORD    0d
 PosicaoFruta    WORD    0d
 
-Estado		WORD	1d
+Estado		WORD	VIVO
 Direcao         WORD    DIREITA
 Tamanho         WORD    1d
-TempoDeCiclo    WORD    2d
+TempoDeCiclo    WORD    2d      ; Em ms
+Executando_INT  WORD    OFF     ; Flag que indica se ja ha alguma interrupção sendo executada no ciclo. (só é permitida realizar 1 por ciclo)
 
-Pontuacao1      WORD    '8'
-Pontuacao2      WORD    '9'
+Pontuacao1      WORD    '0'
+Pontuacao2      WORD    '0'
 Pontuacao3      WORD    '0'
 Pontuacao4      WORD    '0'
 
@@ -161,6 +178,10 @@ Timer:  PUSH    R1
         MOV     M[ CURSOR ], R1
         MOV     R1, M[ CABECA ]
 
+        ENI
+        MOV     R1, OFF
+        MOV     M [ Executando_INT] , R1        ; desativa a flag que indica que ha interrupção em execução.
+
         CALL    Mov_cobra
         CALL    ConfiguraTimer
 
@@ -176,7 +197,7 @@ ConfiguraTimer: PUSH 	R1
                 MOV 	R1, M [ TempoDeCiclo ]
                 MOV 	M [ TIMER_UNITS ], R1
 
-		MOV	R1, M [ Estado ]
+		MOV	R1, M [ Estado ]                ; O clock não é ativado quando a variavel recebe o valor MORTO
                 MOV     M [ ACTIVATE_TIMER], R1
 
 Morto:          POP 	R1
@@ -224,17 +245,23 @@ fim:    POP     R5
 ;------------------------------------------------------------------------------
 print_tela:     PUSH R1
                 PUSH R5
+                PUSH R6
 
+                
 
-                MOV     R5, 8000h
+                
                 MOV     R1, COMP_LINHA
 
 exec1:          CALL    print
                 ADD     R5, R1
+        
                 INC     M [ LinhaTexto ] 
-                CMP     R5, 8798h
+                CMP     R5, R6
                 JMP.NP  exec1 
 
+                MOV     M [ LinhaTexto ], R0
+
+                POP     R6
                 POP R5
                 POP R1
                 RET
@@ -246,27 +273,14 @@ FimDeJogo:      PUSH R1
 
                 MOV     R1, 'X'
                 MOV     M [ Corpo ], R1
-
                 CALL    PrintCorpo
                 
-                
-                MOV     R1, M [ Perdeu_L1 ]
-                MOV     M [ L10 ], R1
-                MOV     R1, M [ Perdeu_L2 ]
-                MOV     M [ L11 ], R1
-                MOV     R1, M [ Perdeu_L3 ]
-                MOV     M [ L12 ], R1
-                MOV     R1, M [ Perdeu_L4 ]
-                MOV     M [ L13 ], R1
-                MOV     R1, M [ Perdeu_L5 ]
-                MOV     M [ L14 ], R1
-                MOV     R1, M [ Perdeu_L6 ]
-                MOV     M [ L15 ], R1
-
+                MOV     R5, Perdeu_L0
+                MOV     R6, Perdeu_L23
                 CALL    print_tela
                 
-                MOV     R1, MORTO
-                MOV     M[ Estado ], R1
+                MOV     R1, MORTO       
+                MOV     M[ Estado ], R1         ; passa a constante MORTO para a variavel Estado, responsavel pela ativação do clock, desativando-o
 
                 POP    R1
 
@@ -379,11 +393,11 @@ AttPosicoes:            PUSH    R1
                
                         MOV     R2, M [ PosicaoCabeca ]
                         MOV     R1, 0d
-LoopAttPosicoes:        MOV     R3, M [ R1 + Vetor ]
-                        MOV     M [ R1 + Vetor ], R2
+LoopAttPosicoes:        MOV     R3, M [ R1 + Vetor ]            ; loop utilizado para atualizar as posições em que cada parte do corpo da cobra deve ser impresso.
+                        MOV     M [ R1 + Vetor ], R2            ; passa o endereço de n-1 para n
                         MOV     R2, R3
 
-                        CMP     M [ PosicaoCabeca], R3 ; compara a posição atual da cabeça da cobra com uma das posições do corpo
+                        CMP     M [ PosicaoCabeca], R3          ; compara a posição atual da cabeça da cobra com uma das posições do corpo
                         CALL.Z  FimDeJogo
                         JMP.Z   FimMov_Cobra
 
@@ -465,17 +479,23 @@ MovCobraEsquerda:       PUSH    R1
 MudaDirecaoCima:        PUSH    R1
                         PUSH    R2
 
+                        MOV     R1, M [ Executando_INT ]
+                        CMP     R1, ON                          ; verifica se alguma interrupção ja esta sendo efetuada durante o clock 
+                        JMP.Z   FimMudaDirecaoCima              ; caso a flog esteja ativa, não permite a execução da interrupção
+
+                        MOV     R1, ON                          ; ativa a flag de execução, impedindo que qualquer outra interrupçãoo seja acionada durante o clock
+                        MOV     M [ Executando_INT ], R1
+
                         MOV     R1, CIMA
                         MOV     R2, M [ Direcao ]
                         ADD     R1, R2
-                        CMP     R1, 0d                  ; verifica se a nova direção não é inversa da posição atual
+                        CMP     R1, 0d                          ; verifica se a nova direção não é inversa da posição atual
                         JMP.Z   FimMudaDirecaoCima
                         
                         MOV     R1, CIMA
                         MOV     M [ Direcao ], R1
                         
-FimMudaDirecaoCima:     DSI                             ; Desativa interrupções ate o proximo clock evitando bug
-                        POP     R2
+FimMudaDirecaoCima:     POP     R2
                         POP     R1
                         RTI
 
@@ -485,17 +505,23 @@ FimMudaDirecaoCima:     DSI                             ; Desativa interrupçõe
 MudaDirecaoBaixo:       PUSH    R1
                         PUSH    R2
 
+                        MOV     R1, M [ Executando_INT ]
+                        CMP     R1, ON                          ; verifica se alguma interrupção ja esta sendo efetuada durante o clock 
+                        JMP.Z   FimMudaDirecaoBaixo             ; caso a flog esteja ativa, não permite a execução da interrupção
+
+                        MOV     R1, ON                          ; ativa a flag de execução, impedindo que qualquer outra interrupçãoo seja acionada durante o clock
+                        MOV     M [ Executando_INT ], R1
+
                         MOV     R1, BAIXO
                         MOV     R2, M [ Direcao ]
                         ADD     R1, R2
-                        CMP     R1, 0d                  ; verifica se a nova direção não é inversa da posição atual
+                        CMP     R1, 0d                          ; verifica se a nova direção não é inversa da posição atual
                         JMP.Z   FimMudaDirecaoBaixo
                         MOV     R1, BAIXO 
                         MOV     M [ Direcao ], R1
                         
                                                         
-FimMudaDirecaoBaixo:    DSI                             ; Desativa interrupções ate o proximo clock evitando bug
-                        POP     R2
+FimMudaDirecaoBaixo:    POP     R2
                         POP     R1
                         RTI
 
@@ -505,17 +531,23 @@ FimMudaDirecaoBaixo:    DSI                             ; Desativa interrupçõe
 MudaDirecaoEsquerda:    PUSH    R1
                         PUSH    R2
 
+                        MOV     R1, M [ Executando_INT ]
+                        CMP     R1, ON                          ; verifica se alguma interrupção ja esta sendo efetuada durante o clock 
+                        JMP.Z   FimMudaDirecaoEsq               ; caso a flog esteja ativa, não permite a execução da interrupção
+
+                        MOV     R1, ON                          ; ativa a flag de execução, impedindo que qualquer outra interrupçãoo seja acionada durante o clock
+                        MOV     M [ Executando_INT ], R1
+
                         MOV     R1, ESQUERDA
                         MOV     R2, M [ Direcao ]
                         ADD     R1, R2
-                        CMP     R1, 0d                  ; verifica se a nova direção não é inversa da posição atual
+                        CMP     R1, 0d                          ; verifica se a nova direção não é inversa da posição atual
                         JMP.Z   FimMudaDirecaoEsq
                         MOV     R1, ESQUERDA
                         MOV     M [ Direcao ], R1
                        
                         
-FimMudaDirecaoEsq:      DSI                             ; Desativa interrupções ate o proximo clock evitando bug
-                        POP     R2
+FimMudaDirecaoEsq:      POP     R2
                         POP     R1
                         RTI
 
@@ -525,16 +557,22 @@ FimMudaDirecaoEsq:      DSI                             ; Desativa interrupçõe
 MudaDirecaoDireita:     PUSH    R1
                         PUSH    R2
 
-                        MOV     R1, DIREITA
+                        MOV     R1, M [ Executando_INT ]
+                        CMP     R1, ON                          ; verifica se alguma interrupção ja esta sendo efetuada durante o clock 
+                        JMP.Z   FimMudaDirecaoDir               ; caso a flog esteja ativa, não permite a execução da interrupção
+
+                        MOV     R1, ON                          ; ativa a flag de execução, impedindo que qualquer outra interrupçãoo seja acionada durante o clock 
+                        MOV     M [ Executando_INT ], R1
+                        
+                        MOV     R1, DIREITA                        
                         MOV     R2, M [ Direcao ]
                         ADD     R1, R2
-                        CMP     R1, 0d                  ; verifica se a nova direção não é inversa da posição atual
+                        CMP     R1, 0d                          ; verifica se a nova direção não é inversa da posição atual
                         JMP.Z   FimMudaDirecaoDir
                         MOV     R1, DIREITA
                         MOV     M [ Direcao ], R1
                         
-FimMudaDirecaoDir:      DSI                             ; Desativa interrupções ate o proximo clock evitando bug
-                        POP     R2
+FimMudaDirecaoDir:      POP     R2
                         POP     R1
                         RTI
 
@@ -751,11 +789,11 @@ PrintFruta:             PUSH    R1
 ValidaFruta:    PUSH    R1
                 PUSH    R2
 
-                MOV     R2, 0d
+                MOV     R2, 0d                  ; função que utiliza um loop para percorrer o vetor que contem as posições do corpo da cobra e verificar se a fruta não sera gerada em alguma delas.
 
-loopValFruta:   MOV     R1, M [ PosicaoFruta ]
-                CMP     M [ R2 + Vetor ], R1
-                CALL.Z  GeraFruta
+loopValFruta:   MOV     R1, M [ PosicaoFruta ]  
+                CMP     M [ R2 + Vetor ], R1    ; verifica se a fruta foi gerada em alguma posição da cobra.
+                CALL.Z  GeraFruta               ; caso a furta tenha sido gerada em uma posição da cobra, executa a função GEraFruta.(isso ira acontecer ate a fruta ser valida) 
                 
                 INC     R2
                 CMP     R2, M [ Tamanho ]
@@ -794,6 +832,8 @@ Main:			ENI
                         SHL  R1, 8d 
                         OR   R1, R2                         
                         
+                        MOV     R5, L0
+                        MOV     R6, L23
                         CALL    print_tela
                         CALL    GeraFruta
                         CALL    PrintFruta
