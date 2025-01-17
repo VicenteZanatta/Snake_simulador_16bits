@@ -14,6 +14,7 @@ ROW_POSITION	EQU	0d
 COL_POSITION	EQU	0d
 ROW_SHIFT	EQU	8d
 COLUMN_SHIFT	EQU	8d
+
 COMP_LINHA      EQU     81d
 NUM_LINHA       EQU     24d
 
@@ -191,9 +192,8 @@ print:  PUSH    R1
         PUSH    R4
         PUSH    R5
 
-        MOV     R1, 0d
-        MOV     M[ PosicaoTexto ], R1
-        MOV     M[ ColunaTexto], R1
+        MOV     M[ PosicaoTexto ], R0
+        MOV     M[ ColunaTexto], R0
 
 exec:   MOV     R1, M[ PosicaoTexto ]
         ADD     R1, R5
@@ -293,7 +293,7 @@ PrintCabeca:    PUSH    R1
                 MOV     R2, M [ ColunaCabeca ]
                 OR      R1, R2
 
-                MOV     M [ PosicaoCabeca], R1
+                MOV     M [ PosicaoCabeca ], R1
                 MOV     R2, CABECA
 
                 MOV     M [ CURSOR ], R1
@@ -362,7 +362,7 @@ Mov_cobra:      PUSH 	R1
 
                 MOV     R1, M [ PosicaoCabeca ]
                 CMP     R1, M [ PosicaoFruta ]
-                JMP.NZ  FimMov_Cobra
+                JMP.NZ  FimMov_Cobra            ; comparação para saber se a cobra comeu a fruta
 
                 CALL    ComeFruta
 
@@ -474,7 +474,8 @@ MudaDirecaoCima:        PUSH    R1
                         MOV     R1, CIMA
                         MOV     M [ Direcao ], R1
                         
-FimMudaDirecaoCima:     POP     R2
+FimMudaDirecaoCima:     DSI                             ; Desativa interrupções ate o proximo clock evitando bug
+                        POP     R2
                         POP     R1
                         RTI
 
@@ -487,12 +488,14 @@ MudaDirecaoBaixo:       PUSH    R1
                         MOV     R1, BAIXO
                         MOV     R2, M [ Direcao ]
                         ADD     R1, R2
-                        CMP     R1, 0d       
+                        CMP     R1, 0d                  ; verifica se a nova direção não é inversa da posição atual
                         JMP.Z   FimMudaDirecaoBaixo
                         MOV     R1, BAIXO 
                         MOV     M [ Direcao ], R1
                         
-FimMudaDirecaoBaixo:    POP     R2
+                                                        
+FimMudaDirecaoBaixo:    DSI                             ; Desativa interrupções ate o proximo clock evitando bug
+                        POP     R2
                         POP     R1
                         RTI
 
@@ -505,12 +508,14 @@ MudaDirecaoEsquerda:    PUSH    R1
                         MOV     R1, ESQUERDA
                         MOV     R2, M [ Direcao ]
                         ADD     R1, R2
-                        CMP     R1, 0d
+                        CMP     R1, 0d                  ; verifica se a nova direção não é inversa da posição atual
                         JMP.Z   FimMudaDirecaoEsq
                         MOV     R1, ESQUERDA
                         MOV     M [ Direcao ], R1
+                       
                         
-FimMudaDirecaoEsq:      POP     R2
+FimMudaDirecaoEsq:      DSI                             ; Desativa interrupções ate o proximo clock evitando bug
+                        POP     R2
                         POP     R1
                         RTI
 
@@ -523,12 +528,13 @@ MudaDirecaoDireita:     PUSH    R1
                         MOV     R1, DIREITA
                         MOV     R2, M [ Direcao ]
                         ADD     R1, R2
-                        CMP     R1, 0d
+                        CMP     R1, 0d                  ; verifica se a nova direção não é inversa da posição atual
                         JMP.Z   FimMudaDirecaoDir
                         MOV     R1, DIREITA
                         MOV     M [ Direcao ], R1
                         
-FimMudaDirecaoDir:      POP     R2
+FimMudaDirecaoDir:      DSI                             ; Desativa interrupções ate o proximo clock evitando bug
+                        POP     R2
                         POP     R1
                         RTI
 
@@ -593,6 +599,7 @@ ComeFruta:     PUSH R1
                 CALL    AtualizaPontuacao
                 CALL    VerificaPontuacao
                 CALL    GeraFruta
+                CALL    PrintFruta
                 
                 POP R1
                 RET
@@ -701,8 +708,8 @@ GeraFruta:              PUSH    R1
                         CALL    RandomV2
                         MOV     R1, M[ Random_Var ]
                         MOV     R2, MAXIMO_COLUNAS
-                        DIV     R1, R2
-                        ADD     R2, 2d
+                        DIV     R1, R2                  ; R2 recebe o resto da divisão, assim sendo usado para operação de mod evitando que a fruta seja gerada fora do mapa. 
+                        ADD     R2, 2d                  ; É adicionado 2 para evitar que a fruta seja gerada no cabeçalho. 
                         MOV     M[ ColunaFruta ], R2
 
                         CALL    RandomV2
@@ -711,22 +718,53 @@ GeraFruta:              PUSH    R1
                         DIV     R1, R2
                         ADD     R2, 2d
                         MOV     M[ LinhaFruta ], R2
-                        
+
                         MOV     R1, M [ LinhaFruta ]
                         SHL     R1, 8d
                         MOV     R2, M [ ColunaFruta ]
                         OR      R1, R2
                         MOV     M [ PosicaoFruta ], R1
 
+                        CALL    ValidaFruta
+                        
+FimFruta:               POP R2
+                        POP R1
+
+                        RET
+
+;------------------------------------------------------------------------------
+; Função Geradora de Fruta
+;------------------------------------------------------------------------------
+PrintFruta:             PUSH    R1
+
                         MOV     R1, M [ PosicaoFruta ]
                         MOV     M [ CURSOR ], R1
                         MOV     R1, FRUTA
                         MOV     M [ IO_WRITE ], R1
 
-FimFruta:               POP R2
                         POP R1
 
                         RET
+;------------------------------------------------------------------------------
+; Função Valida Posição da Fruta
+;------------------------------------------------------------------------------
+ValidaFruta:    PUSH    R1
+                PUSH    R2
+
+                MOV     R2, 0d
+
+loopValFruta:   MOV     R1, M [ PosicaoFruta ]
+                CMP     M [ R2 + Vetor ], R1
+                CALL.Z  GeraFruta
+                
+                INC     R2
+                CMP     R2, M [ Tamanho ]
+                JMP.NZ  loopValFruta     
+
+                POP     R2
+                POP     R1
+                RET
+
 ;-------------------------------------------------------------------------------
 ;VERIFICA PONTUAÇÃO MAXIMA
 ;------------------------------------------------------------------------------
@@ -735,8 +773,8 @@ VerificaPontuacao:      PUSH     R1
                         MOV     R1, M [ Tamanho ]
                         CMP     R1, PONTUACAO_MAXIMA
                         JMP.NZ  FimVerificaPontuacao
-                        MOV     R1,  MORTO
-                        MOV     M [ Estado ], R1
+                        
+                        CALL    FimDeJogo 
 
 FimVerificaPontuacao:   POP     R1
                         RET 
@@ -758,6 +796,7 @@ Main:			ENI
                         
                         CALL    print_tela
                         CALL    GeraFruta
+                        CALL    PrintFruta
                         CALL    ConfiguraTimer
 
 
