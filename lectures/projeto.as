@@ -51,10 +51,10 @@ LIMITE_DIREITO_TELA     EQU     79d
 
 PONTUACAO_MAXIMA        EQU     1560d   ; numero de posições posiveis para serem ocupadas pela cobra no mapa
 
-POSICAO_PLACAR_1        EQU     0000000101001101b ; 01L x 77C   (os 8 bits mais significativos indicam a linha e os 8 menos indicam a coluna)
-POSICAO_PLACAR_2        EQU     0000000101001100b ; 01L x 76C
-POSICAO_PLACAR_3        EQU     0000000101001011b ; 01L x 75C
-POSICAO_PLACAR_4        EQU     0000000101001010b ; 01L x 74C
+POSICAO_PLACAR_U        EQU     0000000101001101b ; 01L x 77C   (os 8 bits mais significativos indicam a linha e os 8 menos indicam a coluna)
+POSICAO_PLACAR_D        EQU     0000000101001100b ; 01L x 76C
+POSICAO_PLACAR_C        EQU     0000000101001011b ; 01L x 75C
+POSICAO_PLACAR_M        EQU     0000000101001010b ; 01L x 74C
 
 ;------------------------------------------------------------------------------
 ; ZONA II: definicao de variaveis
@@ -134,16 +134,23 @@ PosicaoFruta    WORD    0d
 Estado		WORD	VIVO
 Direcao         WORD    DIREITA
 Tamanho         WORD    1d
+Pontuacao       WORD    0d
 TempoDeCiclo    WORD    2d      ; Em ms
 Executando_INT  WORD    OFF     ; Flag que indica se ja ha alguma interrupção sendo executada no ciclo. (só é permitida realizar 1 por ciclo)
 
-Pontuacao1      WORD    '0'
-Pontuacao2      WORD    '0'
-Pontuacao3      WORD    '0'
-Pontuacao4      WORD    '0'
+Unidade         WORD    0d
+Dezena          WORD    0d
+Centena         WORD    0d
+Milhar          WORD    0d
+
+CharUnidade     WORD    '0'
+CharDezena      WORD    '0'
+CharCentena     WORD    '0'
+CharMilhar      WORD    '0'
 
 Corpo           WORD    'o'
 
+Placar          TAB     4d
 Vetor           TAB     1560d
 
 ;------------------------------------------------------------------------------
@@ -631,7 +638,9 @@ RandomV2:	PUSH R1
 ComeFruta:     PUSH R1
 
 
-                CALL    AtualizaPontuacao
+                INC     M [ Tamanho ]
+                CALL    AtualizaPlacar
+                ;CALL    PrintPlacar
                 CALL    VerificaPontuacao
                 CALL    GeraFruta
                 CALL    PrintFruta
@@ -640,95 +649,64 @@ ComeFruta:     PUSH R1
                 RET
 
 ;-------------------------------------------------------------------------------
-;ATUALIZA PONTUAÇÃO
+;Função Atualiza Placar
 ;-------------------------------------------------------------------------------                        
-AtualizaPontuacao:      PUSH    R1
+AtualizaPlacar:         PUSH R1
+                        PUSH R2
+                        PUSH R3
+
+                        INC     M [ Pontuacao]
+                        
+                        MOV     R1, M [ Pontuacao ]
+                        MOV     R2, 1000d
+                        DIV     R1, R2
+                        MOV     R3, POSICAO_PLACAR_M
+                        MOV     M[ CURSOR ], R3
+                        ADD     R1, 48d
+                        MOV     M [ IO_WRITE ], R1
+
+                        MOV     R1, R2
+                        MOV     R2, 100d
+                        DIV     R1, R2
+                        MOV     R3, POSICAO_PLACAR_C
+                        MOV     M[ CURSOR ], R3
+                        ADD     R1, 48d
+                        MOV     M [ IO_WRITE ], R1
+
+                        MOV     R1, R2
+                        MOV     R2, 10d
+                        DIV     R1, R2
+                        MOV     R3, POSICAO_PLACAR_D
+                        MOV     M[ CURSOR ], R3
+                        ADD     R1, 48d
+                        MOV     M [ IO_WRITE ], R1
+
+                        MOV     R3, POSICAO_PLACAR_U
+                        MOV     M[ CURSOR ], R3
+                        ADD     R2, 48d
+                        MOV     M [ IO_WRITE ], R2
+
+                        POP R3
+                        POP R2
+                        POP R1
+                        RET
+
+;-------------------------------------------------------------------------------
+;Função Imprime Placar
+;-------------------------------------------------------------------------------
+PrintPlacar:            PUSH    R1
                         PUSH    R2
+                        PUSH    R3
 
-                        MOV     R1, M [ Pontuacao1 ]
-                        CMP     R1, '9'
-                        JMP.Z   AttDecimal
-
-                        INC     M [ Pontuacao1 ]        ; atualiza as unidades
-                        MOV     R1, POSICAO_PLACAR_1
+                        MOV     R1, POSICAO_PLACAR_U
                         MOV     M [ CURSOR ], R1
-                        MOV     R1, M[ Pontuacao1 ]
+                        MOV     R1, M[ CharUnidade ]
                         MOV     M [ IO_WRITE ], R1
-                        JMP     FimAttPontuacao
-
-AttDecimal:             MOV     R1, M [ Pontuacao2 ]
-                        CMP     R1, '9'
-                        JMP.Z   AttCentena
-
-                        MOV     R2, '0'                  ; altera as unidades para 0
-                        MOV     M [ Pontuacao1], R2
-                        MOV     R2, POSICAO_PLACAR_1
-                        MOV     M [ CURSOR ], R2
-                        MOV     R2, M[ Pontuacao1 ]
-                        MOV     M [ IO_WRITE ], R2
                         
-                        INC     M [ Pontuacao2 ]
-                        MOV     R1, POSICAO_PLACAR_2
-                        MOV     M [ CURSOR ], R1
-                        MOV     R1, M[ Pontuacao2 ]
-                        MOV     M [ IO_WRITE ], R1
-                        JMP     FimAttPontuacao
 
-AttCentena:             MOV     R1, M [ Pontuacao2 ]
-                        CMP     R1, '9'
-                        JMP.Z   AttMilhares
 
-                        MOV     R2, '0'                 ; altera as unidades para 0
-                        MOV     M [ Pontuacao1], R2
-                        MOV     R2, POSICAO_PLACAR_1
-                        MOV     M [ CURSOR ], R2
-                        MOV     R2, M[ Pontuacao1 ]
-                        MOV     M [ IO_WRITE ], R2
-
-                        MOV     M [ Pontuacao2 ], R2    ; altera a dezana para 0
-                        MOV     R2, POSICAO_PLACAR_2
-                        MOV     M [ CURSOR ], R2
-                        MOV     R2, M[ Pontuacao2 ]
-                        MOV     M [ IO_WRITE ], R2
                         
-                        INC     M [ Pontuacao3 ]
-                        MOV     R1, POSICAO_PLACAR_3
-                        MOV     M [ CURSOR ], R1
-                        MOV     R1, M[ Pontuacao3 ]
-                        MOV     M [ IO_WRITE ], R1
-                        JMP     FimAttPontuacao
-                        
-AttMilhares:            MOV     R1, M [ Pontuacao4 ]
-                        CMP     R1, '9'
-                        JMP.Z   FimAttPontuacao
-
-                        MOV     R2, '0'                  ; altera as unidades para 0
-                        MOV     M [ Pontuacao1], R2
-                        MOV     R2, POSICAO_PLACAR_1
-                        MOV     M [ CURSOR ], R2
-                        MOV     R2, M[ Pontuacao1 ]
-                        MOV     M [ IO_WRITE ], R2
-
-                        MOV     M [ Pontuacao2 ], R2     ; altera a dezana para 0
-                        MOV     R2, POSICAO_PLACAR_2
-                        MOV     M [ CURSOR ], R2
-                        MOV     R2, M[ Pontuacao2 ]
-                        MOV     M [ IO_WRITE ], R2
-
-                        MOV     M [ Pontuacao3 ], R2     ; altera a centena para 0
-                        MOV     R2, POSICAO_PLACAR_3
-                        MOV     M [ CURSOR ], R2
-                        MOV     R2, M[ Pontuacao3 ]
-                        MOV     M [ IO_WRITE ], R2
-                        
-                        INC     M [ Pontuacao4 ]
-                        MOV     R1, POSICAO_PLACAR_4
-                        MOV     M [ CURSOR ], R1
-                        MOV     R1, M[ Pontuacao4 ]
-                        MOV     M [ IO_WRITE ], R1
-
-FimAttPontuacao:        INC     M [ Tamanho ]
-
+                        POP     R3
                         POP     R2
                         POP     R1
                         RET
