@@ -284,7 +284,7 @@ FimDeJogo:      PUSH R1
                 CALL    print_tela
                 
                 MOV     R1, MORTO       
-                MOV     M[ Estado ], R1         ; passa a constante MORTO para a variavel Estado, responsavel pela ativação do clock, desativando-o
+                MOV     M[ Estado ], R1         ; passa a constante MORTO para a variavel Estado, responsavel pela ativação do clock, encerrando a execução do programa
 
                 POP    R1
 
@@ -656,16 +656,16 @@ AtualizaPlacar:         PUSH R1
                         PUSH R3
 
                         INC     M [ Pontuacao]
-                        
                         MOV     R1, M [ Pontuacao ]
-                        MOV     R2, 1000d
-                        DIV     R1, R2
+                                     
+                        MOV     R2, 1000d                       ; recebe o valor da pontuação e extrai a unidade de milhar.
+                        DIV     R1, R2                          ; o resto da divisão, armazenada em R2, é o valor restante da pontuação.
                         MOV     R3, POSICAO_PLACAR_M
                         MOV     M[ CURSOR ], R3
-                        ADD     R1, 48d
+                        ADD     R1, 48d                         ; traduz o valor inteiro para o vlaor que representa o caracter ASCII do numero
                         MOV     M [ IO_WRITE ], R1
 
-                        MOV     R1, R2
+                        MOV     R1, R2                          ; repete o processo até chegar na unidade da pontuação
                         MOV     R2, 100d
                         DIV     R1, R2
                         MOV     R3, POSICAO_PLACAR_C
@@ -695,19 +695,27 @@ AtualizaPlacar:         PUSH R1
 ;Função Imprime Placar
 ;-------------------------------------------------------------------------------
 PrintPlacar:            PUSH    R1
-                        PUSH    R2
-                        PUSH    R3
 
                         MOV     R1, POSICAO_PLACAR_U
                         MOV     M [ CURSOR ], R1
                         MOV     R1, M[ CharUnidade ]
                         MOV     M [ IO_WRITE ], R1
-                        
 
+                        MOV     R1, POSICAO_PLACAR_D
+                        MOV     M [ CURSOR ], R1
+                        MOV     R1, M[ CharDezena ]
+                        MOV     M [ IO_WRITE ], R1
 
+                        MOV     R1, POSICAO_PLACAR_C
+                        MOV     M [ CURSOR ], R1
+                        MOV     R1, M[ CharCentena ]
+                        MOV     M [ IO_WRITE ], R1
+
+                        MOV     R1, POSICAO_PLACAR_M
+                        MOV     M [ CURSOR ], R1
+                        MOV     R1, M[ CharMilhar ]
+                        MOV     M [ IO_WRITE ], R1                     
                         
-                        POP     R3
-                        POP     R2
                         POP     R1
                         RET
 
@@ -768,7 +776,7 @@ ValidaFruta:    PUSH    R1
 
 loopValFruta:   MOV     R1, M [ PosicaoFruta ]  
                 CMP     M [ R2 + Vetor ], R1    ; verifica se a fruta foi gerada em alguma posição da cobra.
-                CALL.Z  GeraFruta               ; caso a furta tenha sido gerada em uma posição da cobra, executa a função GEraFruta.(isso ira acontecer ate a fruta ser valida) 
+                CALL.Z  GeraFruta               ; caso a furta tenha sido gerada em uma posição da cobra, executa a função GeraFruta novamente.(isso ira acontecer ate a fruta ser valida) 
                 
                 INC     R2
                 CMP     R2, M [ Tamanho ]
