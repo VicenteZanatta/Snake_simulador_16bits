@@ -90,7 +90,7 @@ L22             STR     '*                                                      
 L23             STR     '********************************************************************************', FIM_TEXTO   
 
 Perdeu_L0       STR     '********************************************************************************', FIM_TEXTO
-Perdeu_L1       STR     '* A COBRA VAI FUMAR                                              Tamanho: 0000 *', FIM_TEXTO
+Perdeu_L1       STR     '* A COBRA VAI FUMAR                                                            *', FIM_TEXTO
 Perdeu_L2       STR     '********************************************************************************', FIM_TEXTO
 Perdeu_L3       STR     '*                                                                              *', FIM_TEXTO
 Perdeu_L4       STR     '*                                                                              *', FIM_TEXTO
@@ -135,7 +135,7 @@ Estado		WORD	VIVO
 Direcao         WORD    DIREITA
 Tamanho         WORD    1d
 Pontuacao       WORD    0d
-TempoDeCiclo    WORD    2d      ; Em ms
+TempoDeCiclo    WORD    5d      ; Em ms
 Executando_INT  WORD    OFF     ; Flag que indica se ja ha alguma interrupção sendo executada no ciclo. (só é permitida realizar 1 por ciclo)
 
 Unidade         WORD    0d
@@ -150,7 +150,6 @@ CharMilhar      WORD    '0'
 
 Corpo           WORD    'o'
 
-Placar          TAB     4d
 Vetor           TAB     1560d
 
 ;------------------------------------------------------------------------------
@@ -212,6 +211,47 @@ Morto:          POP 	R1
                 RET
 
 ;------------------------------------------------------------------------------
+; Rotina Fim de Jogo
+;------------------------------------------------------------------------------
+FimDeJogo:      PUSH R1
+
+                MOV     R1, 'X'
+                MOV     M [ Corpo ], R1
+                CALL    PrintCorpo
+                
+                MOV     R5, Perdeu_L0
+                MOV     R6, Perdeu_L23
+                CALL    print_tela
+                
+                MOV     R1, MORTO       
+                MOV     M[ Estado ], R1         ; passa a constante MORTO para a variavel Estado, responsavel pela ativação do clock, encerrando a execução do programa
+
+                POP    R1                
+;------------------------------------------------------------------------------
+; Rotina Print de Tela
+;------------------------------------------------------------------------------
+print_tela:     PUSH R1
+                PUSH R5         ; Recebe como argumento primeiro endereço de memória da variavel a ser imprimida
+                PUSH R6         ; Recebe como argumento ultimo endereço de memória da variavel a ser imprimida
+               
+                MOV     R1, COMP_LINHA
+
+exec1:          CALL    print
+                ADD     R5, R1
+        
+                INC     M [ LinhaTexto ] 
+                CMP     R5, R6
+                JMP.NP  exec1 
+
+                MOV     M [ LinhaTexto ], R0
+
+                POP     R6
+                POP R5
+                POP R1
+                RET
+
+
+;------------------------------------------------------------------------------
 ; Rotina Print
 ;------------------------------------------------------------------------------
 print:  PUSH    R1              ; Função que imprime uma string
@@ -246,47 +286,7 @@ fim:    POP     R5
         POP     R3 
         POP     R2
         POP     R1
-        RET 
-;------------------------------------------------------------------------------
-; Rotina Print de Tela
-;------------------------------------------------------------------------------
-print_tela:     PUSH R1
-                PUSH R5         ; Recebe como argumento primeiro endereço de memória da variavel a ser imprimida
-                PUSH R6         ; Recebe como argumento ultimo endereço de memória da variavel a ser imprimida
-               
-                MOV     R1, COMP_LINHA
-
-exec1:          CALL    print
-                ADD     R5, R1
-        
-                INC     M [ LinhaTexto ] 
-                CMP     R5, R6
-                JMP.NP  exec1 
-
-                MOV     M [ LinhaTexto ], R0
-
-                POP     R6
-                POP R5
-                POP R1
-                RET
-
-;------------------------------------------------------------------------------
-; Rotina Fim de Jogo
-;------------------------------------------------------------------------------
-FimDeJogo:      PUSH R1
-
-                MOV     R1, 'X'
-                MOV     M [ Corpo ], R1
-                CALL    PrintCorpo
-                
-                MOV     R5, Perdeu_L0
-                MOV     R6, Perdeu_L23
-                CALL    print_tela
-                
-                MOV     R1, MORTO       
-                MOV     M[ Estado ], R1         ; passa a constante MORTO para a variavel Estado, responsavel pela ativação do clock, encerrando a execução do programa
-
-                POP    R1
+        RET
 
 ;------------------------------------------------------------------------------
 ; Rotina Print Cobra
@@ -350,6 +350,33 @@ LoopPrintCorpo: MOV     R2, M [ R1 + Vetor ]     ; R2 Recebe a posição do corp
                 POP     R1
                 RET
 
+                
+;------------------------------------------------------------------------------
+; Função Função Atualiza Posições
+;------------------------------------------------------------------------------
+AttPosicoes:            PUSH    R1
+                        PUSH    R2
+                        PUSH    R3               
+               
+                        MOV     R2, M [ PosicaoCabeca ]
+                        MOV     R1, 0d
+LoopAttPosicoes:        MOV     R3, M [ R1 + Vetor ]            ; loop utilizado para atualizar as posições em que cada parte do corpo da cobra deve ser impresso.
+                        MOV     M [ R1 + Vetor ], R2            ; passa o endereço de n-1 para n
+                        MOV     R2, R3
+
+                        CMP     M [ PosicaoCabeca], R3          ; compara a posição atual da cabeça da cobra com uma das posições do corpo
+                        CALL.Z  FimDeJogo
+                        JMP.Z   FimMov_Cobra
+
+                        INC     R1
+                        CMP     R1, M [ Tamanho ]
+                        JMP.NZ  LoopAttPosicoes
+
+                        POP     R3
+                        POP     R2
+                        POP     R1
+                        RET
+
 ;------------------------------------------------------------------------------
 ; Função Movimenta Cobra
 ;------------------------------------------------------------------------------
@@ -378,42 +405,15 @@ Mov_cobra:      PUSH 	R1
                 CALL    printCobra
                 CALL    AttPosicoes
 
-                MOV     R1, M [ PosicaoCabeca ]
-                CMP     R1, M [ PosicaoFruta ]
-                JMP.NZ  FimMov_Cobra            ; comparação para saber se a cobra comeu a fruta
+FimMov_Cobra:   MOV     R1, M [ PosicaoCabeca ]
+                CMP     R1, M [ PosicaoFruta ]          ; comparação para saber se a cobra comeu a fruta
+                CALL.Z  ComeFruta               
 
-                CALL    ComeFruta
 
-FimMov_Cobra:   POP 	R3
+                POP 	R3
                 POP     R2
                 POP     R1
                 RET
-;------------------------------------------------------------------------------
-; Função Função Atualiza Posições
-;------------------------------------------------------------------------------
-AttPosicoes:            PUSH    R1
-                        PUSH    R2
-                        PUSH    R3               
-               
-                        MOV     R2, M [ PosicaoCabeca ]
-                        MOV     R1, 0d
-LoopAttPosicoes:        MOV     R3, M [ R1 + Vetor ]            ; loop utilizado para atualizar as posições em que cada parte do corpo da cobra deve ser impresso.
-                        MOV     M [ R1 + Vetor ], R2            ; passa o endereço de n-1 para n
-                        MOV     R2, R3
-
-                        CMP     M [ PosicaoCabeca], R3          ; compara a posição atual da cabeça da cobra com uma das posições do corpo
-                        CALL.Z  FimDeJogo
-                        JMP.Z   FimMov_Cobra
-
-                        INC     R1
-                        CMP     R1, M [ Tamanho ]
-                        JMP.NZ  LoopAttPosicoes
-
-                        POP     R3
-                        POP     R2
-                        POP     R1
-                        RET
-
 
 
 ;------------------------------------------------------------------------------
@@ -581,6 +581,167 @@ FimMudaDirecaoDir:      POP     R2
                         RTI
 
 ;------------------------------------------------------------------------------
+; Função Come Fruta
+;------------------------------------------------------------------------------
+ComeFruta:     PUSH R1
+
+
+                INC     M [ Tamanho ]
+                CALL    AtualizaPlacar
+                CALL    PrintPlacar
+                CALL    VerificaPontuacao
+                CALL    GeraFruta
+                CALL    PrintFruta
+                
+                POP R1
+                RET
+
+;-------------------------------------------------------------------------------
+;Função Atualiza Placar
+;-------------------------------------------------------------------------------                        
+AtualizaPlacar:         PUSH R1
+                        PUSH R2
+                        PUSH R3
+
+                        INC     M [ Pontuacao]
+                        MOV     R1, M [ Pontuacao ]
+                                     
+                        MOV     R2, 1000d                       ; recebe o valor da pontuação e extrai a unidade de milhar.
+                        DIV     R1, R2                          ; o resto da divisão, armazenada em R2, é o valor restante da pontuação.
+                        ADD     R1, 48d                         ; traduz o valor inteiro para o valor que representa o caracter ASCII do numero
+                        MOV     M [ CharMilhar], R1
+
+                        MOV     R1, R2                          ; repete o processo até chegar na unidade da pontuação
+                        MOV     R2, 100d
+                        DIV     R1, R2
+                        ADD     R1, 48d
+                        MOV     M [ CharCentena], R1
+
+                        MOV     R1, R2
+                        MOV     R2, 10d
+                        DIV     R1, R2
+                        ADD     R1, 48d
+                        MOV     M [ CharDezena], R1
+
+                        ADD     R2, 48d
+                        MOV     M [ CharUnidade], R2
+
+                        POP R3
+                        POP R2
+                        POP R1
+                        RET
+
+;-------------------------------------------------------------------------------
+;Função Imprime Placar
+;-------------------------------------------------------------------------------
+PrintPlacar:            PUSH    R1
+
+                        MOV     R1, POSICAO_PLACAR_U
+                        MOV     M [ CURSOR ], R1
+                        MOV     R1, M[ CharUnidade ]
+                        MOV     M [ IO_WRITE ], R1
+
+                        MOV     R1, POSICAO_PLACAR_D
+                        MOV     M [ CURSOR ], R1
+                        MOV     R1, M[ CharDezena ]
+                        MOV     M [ IO_WRITE ], R1
+
+                        MOV     R1, POSICAO_PLACAR_C
+                        MOV     M [ CURSOR ], R1
+                        MOV     R1, M[ CharCentena ]
+                        MOV     M [ IO_WRITE ], R1
+
+                        MOV     R1, POSICAO_PLACAR_M
+                        MOV     M [ CURSOR ], R1
+                        MOV     R1, M[ CharMilhar ]
+                        MOV     M [ IO_WRITE ], R1                     
+                        
+                        POP     R1
+                        RET
+
+;-------------------------------------------------------------------------------
+;VERIFICA PONTUAÇÃO MAXIMA
+;------------------------------------------------------------------------------
+VerificaPontuacao:      PUSH     R1
+
+                        MOV     R1, M [ Tamanho ]
+                        CMP     R1, PONTUACAO_MAXIMA
+                        JMP.NZ  FimVerificaPontuacao
+                        
+                        CALL    FimDeJogo 
+
+FimVerificaPontuacao:   POP     R1
+                        RET 
+
+;------------------------------------------------------------------------------
+; Função Geradora de Fruta
+;------------------------------------------------------------------------------
+GeraFruta:              PUSH    R1
+                        PUSH    R2
+
+
+                        CALL    RandomV2
+                        MOV     R1, M[ Random_Var ]
+                        MOV     R2, MAXIMO_COLUNAS
+                        DIV     R1, R2                  ; R2 recebe o resto da divisão, assim sendo usado para operação de mod evitando que a fruta seja gerada fora do mapa. 
+                        ADD     R2, 2d                  ; É adicionado 2 para evitar que a fruta seja gerada no cabeçalho. 
+                        MOV     M[ ColunaFruta ], R2
+
+                        CALL    RandomV2
+                        MOV     R1, M[ Random_Var ]
+                        MOV     R2, MAXIMO_LINHAS
+                        DIV     R1, R2
+                        ADD     R2, 2d
+                        MOV     M[ LinhaFruta ], R2
+
+                        MOV     R1, M [ LinhaFruta ]
+                        SHL     R1, 8d
+                        MOV     R2, M [ ColunaFruta ]
+                        OR      R1, R2
+                        MOV     M [ PosicaoFruta ], R1
+
+                        CALL    ValidaFruta
+                        
+FimFruta:               POP R2
+                        POP R1
+
+                        RET
+
+;------------------------------------------------------------------------------
+; Função Valida Posição da Fruta
+;------------------------------------------------------------------------------
+ValidaFruta:    PUSH    R1
+                PUSH    R2
+
+                MOV     R2, 0d                  ; função que utiliza um loop para percorrer o vetor que contem as posições do corpo da cobra e verificar se a fruta não sera gerada em alguma delas.
+
+loopValFruta:   MOV     R1, M [ PosicaoFruta ]  
+                CMP     M [ R2 + Vetor ], R1    ; verifica se a fruta foi gerada em alguma posição da cobra.
+                CALL.Z  GeraFruta               ; caso a furta tenha sido gerada em uma posição da cobra, executa a função GeraFruta novamente.(isso ira acontecer ate a fruta ser valida) 
+                
+                INC     R2
+                CMP     R2, M [ Tamanho ]
+                JMP.NZ  loopValFruta     
+
+                POP     R2
+                POP     R1
+                RET
+
+;------------------------------------------------------------------------------
+; Função Imprime  Fruta
+;------------------------------------------------------------------------------
+PrintFruta:             PUSH    R1
+
+                        MOV     R1, M [ PosicaoFruta ]
+                        MOV     M [ CURSOR ], R1
+                        MOV     R1, FRUTA
+                        MOV     M [ IO_WRITE ], R1
+
+                        POP R1
+
+                        RET
+
+;------------------------------------------------------------------------------
 ; Função: RandomV1 (versão 1)
 ;
 ; Random: Rotina que gera um valor aleatório - guardado em M[Random_Var]
@@ -632,173 +793,6 @@ RandomV2:	PUSH R1
 			RET
 
 
-;------------------------------------------------------------------------------
-; Função Come Fruta
-;------------------------------------------------------------------------------
-ComeFruta:     PUSH R1
-
-
-                INC     M [ Tamanho ]
-                CALL    AtualizaPlacar
-                ;CALL    PrintPlacar
-                CALL    VerificaPontuacao
-                CALL    GeraFruta
-                CALL    PrintFruta
-                
-                POP R1
-                RET
-
-;-------------------------------------------------------------------------------
-;Função Atualiza Placar
-;-------------------------------------------------------------------------------                        
-AtualizaPlacar:         PUSH R1
-                        PUSH R2
-                        PUSH R3
-
-                        INC     M [ Pontuacao]
-                        MOV     R1, M [ Pontuacao ]
-                                     
-                        MOV     R2, 1000d                       ; recebe o valor da pontuação e extrai a unidade de milhar.
-                        DIV     R1, R2                          ; o resto da divisão, armazenada em R2, é o valor restante da pontuação.
-                        MOV     R3, POSICAO_PLACAR_M
-                        MOV     M[ CURSOR ], R3
-                        ADD     R1, 48d                         ; traduz o valor inteiro para o vlaor que representa o caracter ASCII do numero
-                        MOV     M [ IO_WRITE ], R1
-
-                        MOV     R1, R2                          ; repete o processo até chegar na unidade da pontuação
-                        MOV     R2, 100d
-                        DIV     R1, R2
-                        MOV     R3, POSICAO_PLACAR_C
-                        MOV     M[ CURSOR ], R3
-                        ADD     R1, 48d
-                        MOV     M [ IO_WRITE ], R1
-
-                        MOV     R1, R2
-                        MOV     R2, 10d
-                        DIV     R1, R2
-                        MOV     R3, POSICAO_PLACAR_D
-                        MOV     M[ CURSOR ], R3
-                        ADD     R1, 48d
-                        MOV     M [ IO_WRITE ], R1
-
-                        MOV     R3, POSICAO_PLACAR_U
-                        MOV     M[ CURSOR ], R3
-                        ADD     R2, 48d
-                        MOV     M [ IO_WRITE ], R2
-
-                        POP R3
-                        POP R2
-                        POP R1
-                        RET
-
-;-------------------------------------------------------------------------------
-;Função Imprime Placar
-;-------------------------------------------------------------------------------
-PrintPlacar:            PUSH    R1
-
-                        MOV     R1, POSICAO_PLACAR_U
-                        MOV     M [ CURSOR ], R1
-                        MOV     R1, M[ CharUnidade ]
-                        MOV     M [ IO_WRITE ], R1
-
-                        MOV     R1, POSICAO_PLACAR_D
-                        MOV     M [ CURSOR ], R1
-                        MOV     R1, M[ CharDezena ]
-                        MOV     M [ IO_WRITE ], R1
-
-                        MOV     R1, POSICAO_PLACAR_C
-                        MOV     M [ CURSOR ], R1
-                        MOV     R1, M[ CharCentena ]
-                        MOV     M [ IO_WRITE ], R1
-
-                        MOV     R1, POSICAO_PLACAR_M
-                        MOV     M [ CURSOR ], R1
-                        MOV     R1, M[ CharMilhar ]
-                        MOV     M [ IO_WRITE ], R1                     
-                        
-                        POP     R1
-                        RET
-
-;------------------------------------------------------------------------------
-; Função Geradora de Fruta
-;------------------------------------------------------------------------------
-GeraFruta:              PUSH    R1
-                        PUSH    R2
-
-
-                        CALL    RandomV2
-                        MOV     R1, M[ Random_Var ]
-                        MOV     R2, MAXIMO_COLUNAS
-                        DIV     R1, R2                  ; R2 recebe o resto da divisão, assim sendo usado para operação de mod evitando que a fruta seja gerada fora do mapa. 
-                        ADD     R2, 2d                  ; É adicionado 2 para evitar que a fruta seja gerada no cabeçalho. 
-                        MOV     M[ ColunaFruta ], R2
-
-                        CALL    RandomV2
-                        MOV     R1, M[ Random_Var ]
-                        MOV     R2, MAXIMO_LINHAS
-                        DIV     R1, R2
-                        ADD     R2, 2d
-                        MOV     M[ LinhaFruta ], R2
-
-                        MOV     R1, M [ LinhaFruta ]
-                        SHL     R1, 8d
-                        MOV     R2, M [ ColunaFruta ]
-                        OR      R1, R2
-                        MOV     M [ PosicaoFruta ], R1
-
-                        CALL    ValidaFruta
-                        
-FimFruta:               POP R2
-                        POP R1
-
-                        RET
-
-;------------------------------------------------------------------------------
-; Função Geradora de Fruta
-;------------------------------------------------------------------------------
-PrintFruta:             PUSH    R1
-
-                        MOV     R1, M [ PosicaoFruta ]
-                        MOV     M [ CURSOR ], R1
-                        MOV     R1, FRUTA
-                        MOV     M [ IO_WRITE ], R1
-
-                        POP R1
-
-                        RET
-;------------------------------------------------------------------------------
-; Função Valida Posição da Fruta
-;------------------------------------------------------------------------------
-ValidaFruta:    PUSH    R1
-                PUSH    R2
-
-                MOV     R2, 0d                  ; função que utiliza um loop para percorrer o vetor que contem as posições do corpo da cobra e verificar se a fruta não sera gerada em alguma delas.
-
-loopValFruta:   MOV     R1, M [ PosicaoFruta ]  
-                CMP     M [ R2 + Vetor ], R1    ; verifica se a fruta foi gerada em alguma posição da cobra.
-                CALL.Z  GeraFruta               ; caso a furta tenha sido gerada em uma posição da cobra, executa a função GeraFruta novamente.(isso ira acontecer ate a fruta ser valida) 
-                
-                INC     R2
-                CMP     R2, M [ Tamanho ]
-                JMP.NZ  loopValFruta     
-
-                POP     R2
-                POP     R1
-                RET
-
-;-------------------------------------------------------------------------------
-;VERIFICA PONTUAÇÃO MAXIMA
-;------------------------------------------------------------------------------
-VerificaPontuacao:      PUSH     R1
-
-                        MOV     R1, M [ Tamanho ]
-                        CMP     R1, PONTUACAO_MAXIMA
-                        JMP.NZ  FimVerificaPontuacao
-                        
-                        CALL    FimDeJogo 
-
-FimVerificaPontuacao:   POP     R1
-                        RET 
 
 ;------------------------------------------------------------------------------
 ; Função Main
