@@ -197,7 +197,7 @@ ConfiguraTimer: PUSH 	R1
                 MOV 	R1, M [ TempoDeCiclo ]
                 MOV 	M [ TIMER_UNITS ], R1
 
-		MOV	R1, M [ Estado ]                ; O clock não é ativado quando a variavel recebe o valor MORTO
+		MOV	R1, M [ Estado ]                ; O clock não é ativado quando a variavel recebe o valor MORTO (alteração ocorre na função FimDeJogo)
                 MOV     M [ ACTIVATE_TIMER], R1
 
 Morto:          POP 	R1
@@ -207,7 +207,7 @@ Morto:          POP 	R1
 ;------------------------------------------------------------------------------
 ; Rotina Print
 ;------------------------------------------------------------------------------
-print:  PUSH    R1
+print:  PUSH    R1              ; Função que imprime uma string
         PUSH    R2
         PUSH    R3 
         PUSH    R4
@@ -244,12 +244,9 @@ fim:    POP     R5
 ; Rotina Print de Tela
 ;------------------------------------------------------------------------------
 print_tela:     PUSH R1
-                PUSH R5
-                PUSH R6
-
-                
-
-                
+                PUSH R5         ; Recebe como argumento primeiro endereço de memória da variavel a ser imprimida
+                PUSH R6         ; Recebe como argumento ultimo endereço de memória da variavel a ser imprimida
+               
                 MOV     R1, COMP_LINHA
 
 exec1:          CALL    print
