@@ -15,8 +15,8 @@ COL_POSITION	EQU	0d
 ROW_SHIFT	EQU	8d
 COLUMN_SHIFT	EQU	8d
 
-COMP_LINHA      EQU     81d
-NUM_LINHA       EQU     24d
+COMP_LINHA      EQU     81d             ; valor q indica o comprimento da linha impressa na tela 
+NUM_LINHA       EQU     24d             ; quantidade de linhas a na tela
 
 TIMER_UNITS     EQU     FFF6h
 ACTIVATE_TIMER  EQU     FFF7h
@@ -42,7 +42,7 @@ LSB_MASK		EQU	0001h	; Mascara para testar o bit menos significativo do Random_Va
 PRIME_NUMBER_1	        EQU     11d
 PRIME_NUMBER_2	        EQU     13d
 
-MAXIMO_LINHAS           EQU     20d
+MAXIMO_LINHAS           EQU     19d
 MAXIMO_COLUNAS          EQU     77d
 LIMITE_ESQUERDO_TELA    EQU     0d 
 LIMITE_INFERIOR_TELA    EQU     23d
@@ -133,15 +133,10 @@ PosicaoFruta    WORD    0d
 
 Estado		WORD	VIVO
 Direcao         WORD    DIREITA
-Tamanho         WORD    1d
+Tamanho         WORD    1000d
 Pontuacao       WORD    0d
-TempoDeCiclo    WORD    5d      ; Em ms
+TempoDeCiclo    WORD    2d      ; Em ms
 Executando_INT  WORD    OFF     ; Flag que indica se ja ha alguma interrupção sendo executada no ciclo. (só é permitida realizar 1 por ciclo)
-
-Unidade         WORD    0d
-Dezena          WORD    0d
-Centena         WORD    0d
-Milhar          WORD    0d
 
 CharUnidade     WORD    '0'
 CharDezena      WORD    '0'
@@ -150,7 +145,7 @@ CharMilhar      WORD    '0'
 
 Corpo           WORD    'o'
 
-Vetor           TAB     1560d
+Vetor           TAB     1560d   ; vetor usado para armazenar as a posiçção de cada parte do corpo da cobra
 
 ;------------------------------------------------------------------------------
 ; ZONA II: definicao de tabela de interrupções
@@ -188,6 +183,8 @@ Timer:  PUSH    R1
         MOV     R1, OFF
         MOV     M [ Executando_INT] , R1        ; desativa a flag que indica que ha interrupção em execução.
 
+        CALL    GeraFruta
+        CALL    PrintFruta
         CALL    Mov_cobra
         CALL    ConfiguraTimer
 
@@ -213,26 +210,26 @@ Morto:          POP 	R1
 ;------------------------------------------------------------------------------
 ; Rotina Fim de Jogo
 ;------------------------------------------------------------------------------
-FimDeJogo:      PUSH R1
+FimDeJogo:      PUSH    R1
 
                 MOV     R1, 'X'
                 MOV     M [ Corpo ], R1
                 CALL    PrintCorpo
                 
-                MOV     R5, Perdeu_L0
+                MOV     R5, Perdeu_L0   ; R5 - R6 recebem os endereços necessarios para impressão da tela de Fim de jogo
                 MOV     R6, Perdeu_L23
                 CALL    print_tela
                 
                 MOV     R1, MORTO       
                 MOV     M[ Estado ], R1         ; passa a constante MORTO para a variavel Estado, responsavel pela ativação do clock, encerrando a execução do programa
 
-                POP    R1                
+                POP     R1                
 ;------------------------------------------------------------------------------
 ; Rotina Print de Tela
 ;------------------------------------------------------------------------------
-print_tela:     PUSH R1
-                PUSH R5         ; Recebe como argumento primeiro endereço de memória da variavel a ser imprimida
-                PUSH R6         ; Recebe como argumento ultimo endereço de memória da variavel a ser imprimida
+print_tela:     PUSH    R1
+                PUSH    R5         ; Recebe como argumento primeiro endereço de memória da variavel a ser imprimida
+                PUSH    R6         ; Recebe como argumento ultimo endereço de memória da variavel a ser imprimida
                
                 MOV     R1, COMP_LINHA
 
@@ -246,8 +243,8 @@ exec1:          CALL    print
                 MOV     M [ LinhaTexto ], R0
 
                 POP     R6
-                POP R5
-                POP R1
+                POP     R5
+                POP     R1
                 RET
 
 
@@ -293,6 +290,8 @@ fim:    POP     R5
 ;------------------------------------------------------------------------------
 printCobra:     PUSH    R1
 
+                ;função que agrupa os passos para impressão da cobra
+                
                 CALL    PrintCabeca
                 CALL    PrintCorpo
 
@@ -338,7 +337,7 @@ LoopPrintCorpo: MOV     R2, M [ R1 + Vetor ]     ; R2 Recebe a posição do corp
                 MOV     M [ IO_WRITE ], R3
 
                 INC     R1
-                CMP     R1, M [ Tamanho ]
+                CMP     R1, M [ Tamanho ]       ; verifica se o vetor ja foi totalmente percorrido
                 JMP.NZ  LoopPrintCorpo
 
                 MOV     R3, BORRACHA            ; Apaga a ultima posição 
@@ -419,17 +418,16 @@ FimMov_Cobra:   MOV     R1, M [ PosicaoCabeca ]
 ;------------------------------------------------------------------------------
 ; Função Movimenta Cobra Cima
 ;------------------------------------------------------------------------------
-MovCobraCima:           PUSH    R1       
+MovCobraCima:   PUSH    R1       
 
-                        DEC     M[ LinhaCabeca ]
+                DEC     M[ LinhaCabeca ]
 
-                        MOV     R1, M [ LinhaCabeca]
-                        CMP     R1, LIMITE_SUPERIOR_TELA
-                        CALL.Z  FimDeJogo
-
+                MOV     R1, M [ LinhaCabeca]
+                CMP     R1, LIMITE_SUPERIOR_TELA                ;verifica se a cobra bateu na parede
+                CALL.Z  FimDeJogo
                         
-			POP     R1
-                        RET
+		POP     R1
+                RET
 
 ;------------------------------------------------------------------------------
 ; Função Movimenta Cobra Baixo
@@ -439,7 +437,7 @@ MovCobraBaixo:          PUSH    R1
                         INC     M[ LinhaCabeca ]
 
                         MOV     R1, M [ LinhaCabeca]
-                        CMP     R1, LIMITE_INFERIOR_TELA
+                        CMP     R1, LIMITE_INFERIOR_TELA        ;verifica se a cobra bateu na parede
                         CALL.Z  FimDeJogo                     
                         
                         POP     R1
@@ -454,7 +452,7 @@ MovCobraDireita:        PUSH    R1
 
 
                         MOV     R1, M [ ColunaCabeca ]
-                        CMP     R1, LIMITE_DIREITO_TELA
+                        CMP     R1, LIMITE_DIREITO_TELA         ;verifica se a cobra bateu na parede
                         CALL.Z  FimDeJogo
                         
 
@@ -469,7 +467,7 @@ MovCobraEsquerda:       PUSH    R1
                         DEC     M[ ColunaCabeca ]
 
                         MOV     R1, M [ ColunaCabeca ]
-                        CMP     R1, LIMITE_ESQUERDO_TELA
+                        CMP     R1, LIMITE_ESQUERDO_TELA        ;verifica se a cobra bateu na parede
                         CALL.Z  FimDeJogo
                         
                         POP     R1
@@ -585,6 +583,9 @@ FimMudaDirecaoDir:      POP     R2
 ;------------------------------------------------------------------------------
 ComeFruta:     PUSH R1
 
+                ; função que agrupa todos os passos que devem ser tomados apos a cobra comer a fruta
+                
+                ; usada para melhorar o entendimento e modulação do programa
 
                 INC     M [ Tamanho ]
                 CALL    AtualizaPlacar
@@ -634,27 +635,27 @@ AtualizaPlacar:         PUSH R1
 ;-------------------------------------------------------------------------------
 ;Função Imprime Placar
 ;-------------------------------------------------------------------------------
-PrintPlacar:            PUSH    R1
+PrintPlacar:    PUSH    R1
 
-                        MOV     R1, POSICAO_PLACAR_U
-                        MOV     M [ CURSOR ], R1
-                        MOV     R1, M[ CharUnidade ]
-                        MOV     M [ IO_WRITE ], R1
+                MOV     R1, POSICAO_PLACAR_U
+                MOV     M [ CURSOR ], R1
+                MOV     R1, M[ CharUnidade ]
+                MOV     M [ IO_WRITE ], R1
 
-                        MOV     R1, POSICAO_PLACAR_D
-                        MOV     M [ CURSOR ], R1
-                        MOV     R1, M[ CharDezena ]
-                        MOV     M [ IO_WRITE ], R1
+                MOV     R1, POSICAO_PLACAR_D
+                MOV     M [ CURSOR ], R1
+                MOV     R1, M[ CharDezena ]
+                MOV     M [ IO_WRITE ], R1
 
-                        MOV     R1, POSICAO_PLACAR_C
-                        MOV     M [ CURSOR ], R1
-                        MOV     R1, M[ CharCentena ]
-                        MOV     M [ IO_WRITE ], R1
+                MOV     R1, POSICAO_PLACAR_C
+                MOV     M [ CURSOR ], R1
+                MOV     R1, M[ CharCentena ]
+                MOV     M [ IO_WRITE ], R1
 
-                        MOV     R1, POSICAO_PLACAR_M
-                        MOV     M [ CURSOR ], R1
-                        MOV     R1, M[ CharMilhar ]
-                        MOV     M [ IO_WRITE ], R1                     
+                MOV     R1, POSICAO_PLACAR_M
+                MOV     M [ CURSOR ], R1
+                MOV     R1, M[ CharMilhar ]
+                MOV     M [ IO_WRITE ], R1                     
                         
                         POP     R1
                         RET
@@ -676,36 +677,36 @@ FimVerificaPontuacao:   POP     R1
 ;------------------------------------------------------------------------------
 ; Função Geradora de Fruta
 ;------------------------------------------------------------------------------
-GeraFruta:              PUSH    R1
-                        PUSH    R2
+GeraFruta:      PUSH    R1
+                PUSH    R2
 
 
-                        CALL    RandomV2
-                        MOV     R1, M[ Random_Var ]
-                        MOV     R2, MAXIMO_COLUNAS
-                        DIV     R1, R2                  ; R2 recebe o resto da divisão, assim sendo usado para operação de mod evitando que a fruta seja gerada fora do mapa. 
-                        ADD     R2, 2d                  ; É adicionado 2 para evitar que a fruta seja gerada no cabeçalho. 
-                        MOV     M[ ColunaFruta ], R2
+                CALL    RandomV1                ; função que gera valores "aleatórios
+                MOV     R1, M[ Random_Var ]     ; R1 recebe valor gerado pela função
+                MOV     R2, MAXIMO_COLUNAS
+                DIV     R1, R2                  ; R2 recebe o resto da divisão, assim sendo usado para operação de mod, evitando que a fruta seja gerada fora do mapa. 
+                ADD     R2, 2d                  ; É adicionado 2 para evitar que a fruta seja gerada no cabeçalho. 
+                MOV     M[ ColunaFruta ], R2
 
-                        CALL    RandomV2
-                        MOV     R1, M[ Random_Var ]
-                        MOV     R2, MAXIMO_LINHAS
-                        DIV     R1, R2
-                        ADD     R2, 2d
-                        MOV     M[ LinhaFruta ], R2
+                CALL    RandomV2
+                MOV     R1, M[ Random_Var ]
+                MOV     R2, MAXIMO_LINHAS
+                DIV     R1, R2
+                ADD     R2, 3d
+                MOV     M[ LinhaFruta ], R2
 
-                        MOV     R1, M [ LinhaFruta ]
-                        SHL     R1, 8d
-                        MOV     R2, M [ ColunaFruta ]
-                        OR      R1, R2
-                        MOV     M [ PosicaoFruta ], R1
+                MOV     R1, M [ LinhaFruta ]
+                SHL     R1, 8d
+                MOV     R2, M [ ColunaFruta ]
+                OR      R1, R2
+                MOV     M [ PosicaoFruta ], R1
 
-                        CALL    ValidaFruta
+                CALL    ValidaFruta
                         
-FimFruta:               POP R2
-                        POP R1
+FimFruta:       POP R2
+                POP R1
 
-                        RET
+                RET
 
 ;------------------------------------------------------------------------------
 ; Função Valida Posição da Fruta
@@ -730,16 +731,16 @@ loopValFruta:   MOV     R1, M [ PosicaoFruta ]
 ;------------------------------------------------------------------------------
 ; Função Imprime  Fruta
 ;------------------------------------------------------------------------------
-PrintFruta:             PUSH    R1
+PrintFruta:     PUSH    R1
 
-                        MOV     R1, M [ PosicaoFruta ]
-                        MOV     M [ CURSOR ], R1
-                        MOV     R1, FRUTA
-                        MOV     M [ IO_WRITE ], R1
+                MOV     R1, M [ PosicaoFruta ]
+                MOV     M [ CURSOR ], R1
+                MOV     R1, FRUTA
+                MOV     M [ IO_WRITE ], R1
 
-                        POP R1
+                POP R1
 
-                        RET
+                RET
 
 ;------------------------------------------------------------------------------
 ; Função: RandomV1 (versão 1)
@@ -772,25 +773,25 @@ Rnd_Rotate:	ROR	M[Random_Var], 1
 ;------------------------------------------------------------------------------
 
 RandomV2:	PUSH R1
-			PUSH R2
-			PUSH R3
-			PUSH R4
+		PUSH R2
+		PUSH R3
+		PUSH R4
 
-			MOV R1, M[ RandomState ]
-			MOV R2, PRIME_NUMBER_1
-			MOV R3, PRIME_NUMBER_2
+		MOV R1, M[ RandomState ]
+		MOV R2, PRIME_NUMBER_1
+		MOV R3, PRIME_NUMBER_2
 
-			MUL R1, R2 ; Atenção: O resultado da operacao fica em R1 e R2!!!
-			ADD R2, R3 ; Vamos usar os 16 bits menos significativos da MUL
-			MOV M[ RandomState ], R2
-                        MOV M[ Random_Var ], R2
+		MUL R1, R2 ; Atenção: O resultado da operacao fica em R1 e R2!!!
+		ADD R2, R3 ; Vamos usar os 16 bits menos significativos da MUL
+		MOV M[ RandomState ], R2
+                MOV M[ Random_Var ], R2
 
-			POP R4
-			POP R3
-			POP R2
-			POP R1
+		POP R4
+		POP R3
+		POP R2
+		POP R1
 
-			RET
+		RET
 
 
 
@@ -809,8 +810,8 @@ Main:			ENI
                         SHL  R1, 8d 
                         OR   R1, R2                         
                         
-                        MOV     R5, L0
-                        MOV     R6, L23
+                        MOV     R5, L0          ; variavel que contem a primeira posição de memória a sem impressa da tela
+                        MOV     R6, L23         ; variavel que contem a ultima posição de memória a sem impressa da tela
                         CALL    print_tela
                         CALL    GeraFruta
                         CALL    PrintFruta
